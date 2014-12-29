@@ -1,4 +1,5 @@
 #include "system_config.h"
+#include "usb_kb.h"
 #include "usb_lib.h"
 #include "usb_prop.h"
 #include "usb_desc.h"
@@ -63,12 +64,12 @@ void USB_KB_tx(usb_report *report)
 
   uint32_t spoon_guard = 1000000;
   while(kb_tx_complete==0 && --spoon_guard);
+  ASSERT(spoon_guard > 0);
 
   /* Reset the control token to inform upper layer that a transfer is ongoing */
   kb_tx_complete = 0;
 
   /* Copy mouse position info in ENDP1 Tx Packet Memory Area*/
-  print("sil write %i bytes\n", sizeof(report->raw));
   USB_SIL_Write(EP1_IN, report->raw, sizeof(report->raw));
 
   /* Enable endpoint for transmission */

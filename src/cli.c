@@ -15,6 +15,8 @@
 
 #include "gpio.h"
 
+#include "usb_kb.h"
+
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
 
@@ -147,11 +149,6 @@ static int f_usb_send(int b) {
   r.keymap[0] = b;
   USB_KB_tx(&r);
   return 0;
-}
-
-static void usb_char(uint8_t c) {
-  f_usb_send(c+4-'A');
-  f_usb_send(0);
 }
 
 static int f_usb_test(uint8_t k) {
@@ -513,7 +510,6 @@ void CLI_init() {
   print("build date: %i\n", SYS_build_date());
   print("\ntype '?' or 'help' for list of commands\n\n");
   print(CLI_PROMPT);
-  f_usb_init();
 }
 
 static void cli_print_app_name(void) {

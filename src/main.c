@@ -10,6 +10,7 @@
 #include "linker_symaccess.h"
 #include "app.h"
 #include "gpio.h"
+#include "usb_kb.h"
 
 static void assert_cb(void) {
 //  uint32_t ipsr;
@@ -29,8 +30,11 @@ int main(void) {
   exit_critical();
 
   SYS_set_assert_callback(assert_cb);
+  SYS_set_assert_behaviour(ASSERT_RESET);
 
   IO_define(IOSTD, io_uart, UARTSTDIN);
+
+  USB_KB_init();
 
   print("\n\n\nHardware initialization done\n");
 

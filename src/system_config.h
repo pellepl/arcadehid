@@ -110,17 +110,6 @@ typedef u16_t system_counter_type;
 
 #define USB_REPORT_KEYMAP_SIZE    16 /* 6 */
 
-typedef struct {
-  union {
-    u8_t raw[1 + 1 + USB_REPORT_KEYMAP_SIZE];
-    struct {
-      u8_t modifiers;
-      u8_t reserved;
-      u8_t keymap[USB_REPORT_KEYMAP_SIZE];
-    };
-  };
-} usb_report;
-
 /** DEBUG **/
 
 #define DBG_ATTRIBUTE __attribute__(( section(".shmem") ))

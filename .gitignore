@@ -1,0 +1,12 @@
+/build
+/build_sec
+build-number.txt
+.project
+.settings
+.cproject
+*.classpath
+*.b#*
+*.s#*
+config_header.h
+*~
+

@@ -5,6 +5,7 @@
 #include "usb_type.h"
 
 extern volatile uint8_t kb_tx_complete;
+extern uint8_t kb_led_state;
 
 void Enter_LowPowerMode(void);
 void Leave_LowPowerMode(void);

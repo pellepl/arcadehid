@@ -145,6 +145,7 @@ static int f_usb_init(void) {
 
 static int f_usb_send(int b) {
   usb_report r;
+  memset(&r, 0, sizeof(r));
   r.modifiers = 0;
   r.keymap[0] = b;
   USB_KB_tx(&r);

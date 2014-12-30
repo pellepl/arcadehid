@@ -211,7 +211,13 @@ void KB_SetDeviceAddress (void)
 * Return         : None.
 *******************************************************************************/
 void KB_Status_In(void)
-{}
+{
+  static uint8_t old_led_state = 0;
+  if (old_led_state != kb_led_state) {
+    //print("led state:%s %s\n", kb_led_state & 1 ? "NUM":"", kb_led_state & 2 ? "CAPS":"");
+    old_led_state = kb_led_state;
+  }
+}
 
 /*******************************************************************************
 * Function Name  : KB_Status_Out
@@ -221,7 +227,14 @@ void KB_Status_In(void)
 * Return         : None.
 *******************************************************************************/
 void KB_Status_Out (void)
-{}
+{
+}
+
+uint8_t *KB_set_configuration(uint16_t Length)
+{
+  pInformation->Ctrl_Info.Usb_wLength = 1;
+  return &kb_led_state;
+}
 
 /*******************************************************************************
 * Function Name  : KB_Data_Setup
@@ -233,7 +246,6 @@ void KB_Status_Out (void)
 RESULT KB_Data_Setup(uint8_t RequestNo)
 {
   uint8_t *(*CopyRoutine)(uint16_t);
-
   CopyRoutine = NULL;
   if ((RequestNo == GET_DESCRIPTOR)
       && (Type_Recipient == (STANDARD_REQUEST | INTERFACE_RECIPIENT))
@@ -256,6 +268,14 @@ RESULT KB_Data_Setup(uint8_t RequestNo)
   {
     CopyRoutine = KB_GetProtocolValue;
   }
+  /*** SET_CONFIGURATION ***/
+  else if (RequestNo == SET_CONFIGURATION) {
+    if (Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
+    {
+      CopyRoutine = KB_set_configuration;
+    }
+  }
+
   if (CopyRoutine == NULL)
   {
     return USB_UNSUPPORT;

@@ -45,6 +45,11 @@
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
+
+//void EP1_OUT_Callback(void)
+//{
+//}
+
 void EP1_IN_Callback(void)
 {
   /* Set the transfer complete token to inform upper layer that the current 

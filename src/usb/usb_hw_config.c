@@ -9,6 +9,7 @@
 ErrorStatus HSEStartUpStatus;
 /* Extern variables ----------------------------------------------------------*/
 volatile uint8_t kb_tx_complete = 1;
+uint8_t kb_led_state = 0;
 
 uint8_t USB_Tx_State = 0;
 static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len);

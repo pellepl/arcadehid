@@ -40,7 +40,7 @@
 /* EP_NUM */
 /* defines how many endpoints are used by the device */
 /*-------------------------------------------------------------*/
-#define EP_NUM     (2)
+#define EP_NUM     (3)
 
 /*-------------------------------------------------------------*/
 /* --------------   Buffer Description Table  -----------------*/
@@ -58,6 +58,10 @@
 /* tx buffer base address */
 #define ENDP1_TXADDR        (0x100)
 
+/* EP2  */
+/* tx buffer base address */
+#define ENDP2_TXADDR        (0x140)
+
 
 /*-------------------------------------------------------------*/
 /* -------------------   ISTR events  -------------------------*/
@@ -71,7 +75,7 @@
 /* CTR service routines */
 /* associated to defined endpoints */
 // #define  EP1_IN_Callback   NOP_Process
-#define  EP2_IN_Callback   NOP_Process
+// #define  EP2_IN_Callback   NOP_Process
 #define  EP3_IN_Callback   NOP_Process
 #define  EP4_IN_Callback   NOP_Process
 #define  EP5_IN_Callback   NOP_Process

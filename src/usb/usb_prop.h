@@ -46,34 +46,35 @@ typedef enum _HID_REQUESTS
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-void KB_init(void);
-void KB_Reset(void);
-void KB_SetConfiguration(void);
-void KB_SetDeviceAddress (void);
-void KB_Status_In (void);
-void KB_Status_Out (void);
-RESULT KB_Data_Setup(uint8_t);
-RESULT KB_NoData_Setup(uint8_t);
-RESULT KB_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting);
-uint8_t *KB_GetDeviceDescriptor(uint16_t );
-uint8_t *KB_GetConfigDescriptor(uint16_t);
-uint8_t *KB_GetStringDescriptor(uint16_t);
-RESULT KB_SetProtocol(void);
-uint8_t *KB_GetProtocolValue(uint16_t Length);
-RESULT KB_SetProtocol(void);
-uint8_t *KB_GetReportDescriptor(uint16_t Length);
-uint8_t *KB_GetHIDDescriptor(uint16_t Length);
+void ARC_init(void);
+void ARC_Reset(void);
+void ARC_SetConfiguration(void);
+void ARC_SetDeviceAddress (void);
+void ARC_Status_In (void);
+void ARC_Status_Out (void);
+RESULT ARC_Data_Setup(uint8_t);
+RESULT ARC_NoData_Setup(uint8_t);
+RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting);
+uint8_t *ARC_GetDeviceDescriptor(uint16_t );
+uint8_t *ARC_GetConfigDescriptor(uint16_t);
+uint8_t *ARC_GetStringDescriptor(uint16_t);
+RESULT ARC_SetProtocol(void);
+uint8_t *ARC_GetProtocolValue(uint16_t Length);
+RESULT ARC_SetProtocol(void);
+uint8_t *ARC_GetKBReportDescriptor(uint16_t Length);
+uint8_t *ARC_GetMouseReportDescriptor(uint16_t Length);
+uint8_t *ARC_GetHIDDescriptor(uint16_t Length);
 
 /* Exported define -----------------------------------------------------------*/
-#define KB_GetConfiguration          NOP_Process
-//#define KB_SetConfiguration          NOP_Process
-#define KB_GetInterface              NOP_Process
-#define KB_SetInterface              NOP_Process
-#define KB_GetStatus                 NOP_Process
-#define KB_ClearFeature              NOP_Process
-#define KB_SetEndPointFeature        NOP_Process
-#define KB_SetDeviceFeature          NOP_Process
-//#define KB_SetDeviceAddress          NOP_Process
+#define ARC_GetConfiguration          NOP_Process
+//#define ARC_SetConfiguration          NOP_Process
+#define ARC_GetInterface              NOP_Process
+#define ARC_SetInterface              NOP_Process
+#define ARC_GetStatus                 NOP_Process
+#define ARC_ClearFeature              NOP_Process
+#define ARC_SetEndPointFeature        NOP_Process
+#define ARC_SetDeviceFeature          NOP_Process
+//#define ARC_SetDeviceAddress          NOP_Process
 
 #define REPORT_DESCRIPTOR                  0x22
 

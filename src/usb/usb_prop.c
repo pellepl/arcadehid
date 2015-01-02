@@ -52,62 +52,68 @@ DEVICE Device_Table =
 
 DEVICE_PROP Device_Property =
   {
-    KB_init,
-    KB_Reset,
-    KB_Status_In,
-    KB_Status_Out,
-    KB_Data_Setup,
-    KB_NoData_Setup,
-    KB_Get_Interface_Setting,
-    KB_GetDeviceDescriptor,
-    KB_GetConfigDescriptor,
-    KB_GetStringDescriptor,
+    ARC_init,
+    ARC_Reset,
+    ARC_Status_In,
+    ARC_Status_Out,
+    ARC_Data_Setup,
+    ARC_NoData_Setup,
+    ARC_Get_Interface_Setting,
+    ARC_GetDeviceDescriptor,
+    ARC_GetConfigDescriptor,
+    ARC_GetStringDescriptor,
     0,
     0x40 /*MAX PACKET SIZE*/
   };
 USER_STANDARD_REQUESTS User_Standard_Requests =
   {
-    KB_GetConfiguration,
-    KB_SetConfiguration,
-    KB_GetInterface,
-    KB_SetInterface,
-    KB_GetStatus,
-    KB_ClearFeature,
-    KB_SetEndPointFeature,
-    KB_SetDeviceFeature,
-    KB_SetDeviceAddress
+    ARC_GetConfiguration,
+    ARC_SetConfiguration,
+    ARC_GetInterface,
+    ARC_SetInterface,
+    ARC_GetStatus,
+    ARC_ClearFeature,
+    ARC_SetEndPointFeature,
+    ARC_SetDeviceFeature,
+    ARC_SetDeviceAddress
   };
 
 ONE_DESCRIPTOR Device_Descriptor =
   {
-    (uint8_t*)KB_device_descriptor,
-    KB_SIZE_DEVICE_DESC
+    (uint8_t*)ARC_device_descriptor,
+    ARC_SIZE_DEVICE_DESC
   };
 
 ONE_DESCRIPTOR Config_Descriptor =
   {
-    (uint8_t*)KB_config_descriptor,
-    KB_SIZE_CONFIG_DESC
+    (uint8_t*)ARC_config_descriptor,
+    ARC_SIZE_CONFIG_DESC
   };
 
-ONE_DESCRIPTOR KB_Report_Descriptor =
+ONE_DESCRIPTOR ARC_KB_Report_Descriptor =
   {
-    (uint8_t *)KB_report_descriptor,
-    KB_SIZE_REPORT_DESC
+    (uint8_t *)ARC_KB_report_descriptor,
+    ARC_KB_SIZE_REPORT_DESC
   };
 
-ONE_DESCRIPTOR KB_Hid_Descriptor =
+ONE_DESCRIPTOR ARC_MOUSE_Report_Descriptor =
   {
-    (uint8_t*)KB_config_descriptor + KB_OFFS_HID_DESC,
-    KB_SIZE_HID_DESC
+    (uint8_t *)ARC_MOUSE_report_descriptor,
+    ARC_MOUSE_SIZE_REPORT_DESC
+  };
+
+ONE_DESCRIPTOR ARC_Hid_Descriptor =
+  {
+    (uint8_t*)ARC_config_descriptor + ARC_OFFS_HID_DESC,
+    ARC_SIZE_HID_DESC
   };
 
 ONE_DESCRIPTOR String_Descriptor[4] =
   {
-    {(uint8_t*)KB_string_lang_ID, KB_SIZE_STRING_LANGID},
-    {(uint8_t*)KB_string_vendor, KB_SIZE_STRING_VENDOR},
-    {(uint8_t*)KB_string_product, KB_SIZE_STRING_PRODUCT},
-    {(uint8_t*)KB_string_serial, KB_SIZE_STRING_SERIAL}
+    {(uint8_t*)ARC_string_lang_ID, ARC_SIZE_STRING_LANGID},
+    {(uint8_t*)ARC_string_vendor, ARC_SIZE_STRING_VENDOR},
+    {(uint8_t*)ARC_string_product, ARC_SIZE_STRING_PRODUCT},
+    {(uint8_t*)ARC_string_serial, ARC_SIZE_STRING_SERIAL}
   };
 
 /* Extern variables ----------------------------------------------------------*/
@@ -116,13 +122,13 @@ ONE_DESCRIPTOR String_Descriptor[4] =
 /* Private functions ---------------------------------------------------------*/
 
 /*******************************************************************************
-* Function Name  : KB_init.
+* Function Name  : ARC_init.
 * Description    : Joystick Mouse init routine.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_init(void)
+void ARC_init(void)
 {
 
   /* Update the serial number string descriptor with the data from the unique
@@ -140,22 +146,23 @@ void KB_init(void)
 }
 
 /*******************************************************************************
-* Function Name  : KB_Reset.
+* Function Name  : ARC_Reset.
 * Description    : Joystick Mouse reset routine.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_Reset(void)
+void ARC_Reset(void)
 {
-  /* Set KB_DEVICE as not configured */
+  /* Set ARC_DEVICE as not configured */
   pInformation->Current_Configuration = 0;
   pInformation->Current_Interface = 0;/*the default Interface*/
 
   /* Current Feature initialization */
-  pInformation->Current_Feature = KB_config_descriptor[7];
+  pInformation->Current_Feature = ARC_config_descriptor[7];
   SetBTABLE(BTABLE_ADDRESS);
   /* Initialize Endpoint 0 */
+
   SetEPType(ENDP0, EP_CONTROL);
   SetEPTxStatus(ENDP0, EP_TX_STALL);
   SetEPRxAddr(ENDP0, ENDP0_RXADDR);
@@ -171,18 +178,25 @@ void KB_Reset(void)
   SetEPRxStatus(ENDP1, EP_RX_DIS);
   SetEPTxStatus(ENDP1, EP_TX_NAK);
 
+  /* Initialize Endpoint 2 */
+  SetEPType(ENDP2, EP_INTERRUPT);
+  SetEPTxAddr(ENDP2, ENDP2_TXADDR);
+  SetEPTxCount(ENDP2, 4);
+  SetEPRxStatus(ENDP2, EP_RX_DIS);
+  SetEPTxStatus(ENDP2, EP_TX_NAK);
+
   /* Set this device to response on default address */
   SetDeviceAddress(0);
   bDeviceState = ATTACHED;
 }
 /*******************************************************************************
-* Function Name  : KB_SetConfiguration.
+* Function Name  : ARC_SetConfiguration.
 * Description    : Update the device state to configured.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_SetConfiguration(void)
+void ARC_SetConfiguration(void)
 {
   DEVICE_INFO *pInfo = &Device_Info;
 
@@ -193,24 +207,24 @@ void KB_SetConfiguration(void)
   }
 }
 /*******************************************************************************
-* Function Name  : KB_SetConfiguration.
+* Function Name  : ARC_SetConfiguration.
 * Description    : Update the device state to addressed.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_SetDeviceAddress (void)
+void ARC_SetDeviceAddress (void)
 {
   bDeviceState = ADDRESSED;
 }
 /*******************************************************************************
-* Function Name  : KB_Status_In.
+* Function Name  : ARC_Status_In.
 * Description    : Joystick status IN routine.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_Status_In(void)
+void ARC_Status_In(void)
 {
   static uint8_t old_led_state = 0;
   if (old_led_state != kb_led_state) {
@@ -220,44 +234,48 @@ void KB_Status_In(void)
 }
 
 /*******************************************************************************
-* Function Name  : KB_Status_Out
+* Function Name  : ARC_Status_Out
 * Description    : Joystick status OUT routine.
 * Input          : None.
 * Output         : None.
 * Return         : None.
 *******************************************************************************/
-void KB_Status_Out (void)
+void ARC_Status_Out (void)
 {
 }
 
-uint8_t *KB_set_configuration(uint16_t Length)
+uint8_t *ARC_set_configuration(uint16_t Length)
 {
   pInformation->Ctrl_Info.Usb_wLength = 1;
   return &kb_led_state;
 }
 
 /*******************************************************************************
-* Function Name  : KB_Data_Setup
+* Function Name  : ARC_Data_Setup
 * Description    : Handle the data class specific requests.
 * Input          : Request Nb.
 * Output         : None.
 * Return         : USB_UNSUPPORT or USB_SUCCESS.
 *******************************************************************************/
-RESULT KB_Data_Setup(uint8_t RequestNo)
+RESULT ARC_Data_Setup(uint8_t RequestNo)
 {
   uint8_t *(*CopyRoutine)(uint16_t);
   CopyRoutine = NULL;
   if ((RequestNo == GET_DESCRIPTOR)
       && (Type_Recipient == (STANDARD_REQUEST | INTERFACE_RECIPIENT))
-      && (pInformation->USBwIndex0 == 0))
+      && (pInformation->USBwIndex0 == 0 || pInformation->USBwIndex0 == 1))
   {
     if (pInformation->USBwValue1 == REPORT_DESCRIPTOR)
     {
-      CopyRoutine = KB_GetReportDescriptor;
+      if (pInformation->USBwIndex0 == 0) {
+        CopyRoutine = ARC_GetKBReportDescriptor;
+      } else {
+        CopyRoutine = ARC_GetMouseReportDescriptor;
+      }
     }
     else if (pInformation->USBwValue1 == HID_DESCRIPTOR_TYPE)
     {
-      CopyRoutine = KB_GetHIDDescriptor;
+      CopyRoutine = ARC_GetHIDDescriptor;
     }
 
   } /* End of GET_DESCRIPTOR */
@@ -266,13 +284,13 @@ RESULT KB_Data_Setup(uint8_t RequestNo)
   else if ((Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
            && RequestNo == GET_PROTOCOL)
   {
-    CopyRoutine = KB_GetProtocolValue;
+    CopyRoutine = ARC_GetProtocolValue;
   }
   /*** SET_CONFIGURATION ***/
   else if (RequestNo == SET_CONFIGURATION) {
     if (Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
     {
-      CopyRoutine = KB_set_configuration;
+      CopyRoutine = ARC_set_configuration;
     }
   }
 
@@ -287,18 +305,18 @@ RESULT KB_Data_Setup(uint8_t RequestNo)
 }
 
 /*******************************************************************************
-* Function Name  : KB_NoData_Setup
+* Function Name  : ARC_NoData_Setup
 * Description    : handle the no data class specific requests
 * Input          : Request Nb.
 * Output         : None.
 * Return         : USB_UNSUPPORT or USB_SUCCESS.
 *******************************************************************************/
-RESULT KB_NoData_Setup(uint8_t RequestNo)
+RESULT ARC_NoData_Setup(uint8_t RequestNo)
 {
   if ((Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
       && (RequestNo == SET_PROTOCOL))
   {
-    return KB_SetProtocol();
+    return ARC_SetProtocol();
   }
 
   else
@@ -308,37 +326,37 @@ RESULT KB_NoData_Setup(uint8_t RequestNo)
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetDeviceDescriptor.
+* Function Name  : ARC_GetDeviceDescriptor.
 * Description    : Gets the device descriptor.
 * Input          : Length
 * Output         : None.
 * Return         : The address of the device descriptor.
 *******************************************************************************/
-uint8_t *KB_GetDeviceDescriptor(uint16_t Length)
+uint8_t *ARC_GetDeviceDescriptor(uint16_t Length)
 {
   return Standard_GetDescriptorData(Length, &Device_Descriptor);
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetConfigDescriptor.
+* Function Name  : ARC_GetConfigDescriptor.
 * Description    : Gets the configuration descriptor.
 * Input          : Length
 * Output         : None.
 * Return         : The address of the configuration descriptor.
 *******************************************************************************/
-uint8_t *KB_GetConfigDescriptor(uint16_t Length)
+uint8_t *ARC_GetConfigDescriptor(uint16_t Length)
 {
   return Standard_GetDescriptorData(Length, &Config_Descriptor);
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetStringDescriptor
+* Function Name  : ARC_GetStringDescriptor
 * Description    : Gets the string descriptors according to the needed index
 * Input          : Length
 * Output         : None.
 * Return         : The address of the string descriptors.
 *******************************************************************************/
-uint8_t *KB_GetStringDescriptor(uint16_t Length)
+uint8_t *ARC_GetStringDescriptor(uint16_t Length)
 {
   uint8_t wValue0 = pInformation->USBwValue0;
   if (wValue0 > 4)
@@ -352,31 +370,35 @@ uint8_t *KB_GetStringDescriptor(uint16_t Length)
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetReportDescriptor.
+* Function Name  : ARC_GetReportDescriptor.
 * Description    : Gets the HID report descriptor.
 * Input          : Length
 * Output         : None.
 * Return         : The address of the configuration descriptor.
 *******************************************************************************/
-uint8_t *KB_GetReportDescriptor(uint16_t Length)
+uint8_t *ARC_GetKBReportDescriptor(uint16_t Length)
 {
-  return Standard_GetDescriptorData(Length, &KB_Report_Descriptor);
+  return Standard_GetDescriptorData(Length, &ARC_KB_Report_Descriptor);
+}
+uint8_t *ARC_GetMouseReportDescriptor(uint16_t Length)
+{
+  return Standard_GetDescriptorData(Length, &ARC_MOUSE_Report_Descriptor);
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetHIDDescriptor.
+* Function Name  : ARC_GetHIDDescriptor.
 * Description    : Gets the HID descriptor.
 * Input          : Length
 * Output         : None.
 * Return         : The address of the configuration descriptor.
 *******************************************************************************/
-uint8_t *KB_GetHIDDescriptor(uint16_t Length)
+uint8_t *ARC_GetHIDDescriptor(uint16_t Length)
 {
-  return Standard_GetDescriptorData(Length, &KB_Hid_Descriptor);
+  return Standard_GetDescriptorData(Length, &ARC_Hid_Descriptor);
 }
 
 /*******************************************************************************
-* Function Name  : KB_Get_Interface_Setting.
+* Function Name  : ARC_Get_Interface_Setting.
 * Description    : tests the interface and the alternate setting according to the
 *                  supported one.
 * Input          : - Interface : interface number.
@@ -384,7 +406,7 @@ uint8_t *KB_GetHIDDescriptor(uint16_t Length)
 * Output         : None.
 * Return         : USB_SUCCESS or USB_UNSUPPORT.
 *******************************************************************************/
-RESULT KB_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
+RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
 {
   if (AlternateSetting > 0)
   {
@@ -398,13 +420,13 @@ RESULT KB_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
 }
 
 /*******************************************************************************
-* Function Name  : KB_SetProtocol
+* Function Name  : ARC_SetProtocol
 * Description    : Joystick Set Protocol request routine.
 * Input          : None.
 * Output         : None.
 * Return         : USB SUCCESS.
 *******************************************************************************/
-RESULT KB_SetProtocol(void)
+RESULT ARC_SetProtocol(void)
 {
   uint8_t wValue0 = pInformation->USBwValue0;
   ProtocolValue = wValue0;
@@ -412,13 +434,13 @@ RESULT KB_SetProtocol(void)
 }
 
 /*******************************************************************************
-* Function Name  : KB_GetProtocolValue
+* Function Name  : ARC_GetProtocolValue
 * Description    : get the protocol value
 * Input          : Length.
 * Output         : None.
 * Return         : address of the protocol value.
 *******************************************************************************/
-uint8_t *KB_GetProtocolValue(uint16_t Length)
+uint8_t *ARC_GetProtocolValue(uint16_t Length)
 {
   if (Length == 0)
   {

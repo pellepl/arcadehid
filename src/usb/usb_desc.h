@@ -42,27 +42,29 @@
 #define USB_ENDPOINT_DESCRIPTOR_TYPE            0x05
 
 #define HID_DESCRIPTOR_TYPE                     0x21
-#define KB_SIZE_HID_DESC                   0x09
-#define KB_OFFS_HID_DESC                   0x12
+#define ARC_SIZE_HID_DESC                   0x09
+#define ARC_OFFS_HID_DESC                   0x12
 
-#define KB_SIZE_DEVICE_DESC                18
-#define KB_SIZE_CONFIG_DESC                34
-#define KB_SIZE_REPORT_DESC                62
-#define KB_SIZE_STRING_LANGID              4
-#define KB_SIZE_STRING_VENDOR              30
-#define KB_SIZE_STRING_PRODUCT             32
-#define KB_SIZE_STRING_SERIAL              26
+#define ARC_SIZE_DEVICE_DESC                18
+#define ARC_SIZE_CONFIG_DESC                59
+#define ARC_KB_SIZE_REPORT_DESC                62
+#define ARC_MOUSE_SIZE_REPORT_DESC             74
+#define ARC_SIZE_STRING_LANGID              4
+#define ARC_SIZE_STRING_VENDOR              30
+#define ARC_SIZE_STRING_PRODUCT             31
+#define ARC_SIZE_STRING_SERIAL              26
 
 #define STANDARD_ENDPOINT_DESC_SIZE             0x09
 
 /* Exported functions ------------------------------------------------------- */
-extern const uint8_t KB_device_descriptor[KB_SIZE_DEVICE_DESC];
-extern const uint8_t KB_config_descriptor[KB_SIZE_CONFIG_DESC];
-extern const uint8_t KB_report_descriptor[KB_SIZE_REPORT_DESC];
-extern const uint8_t KB_string_lang_ID[KB_SIZE_STRING_LANGID];
-extern const uint8_t KB_string_vendor[KB_SIZE_STRING_VENDOR];
-extern const uint8_t KB_string_product[KB_SIZE_STRING_PRODUCT];
-extern uint8_t KB_string_serial[KB_SIZE_STRING_SERIAL];
+extern const uint8_t ARC_device_descriptor[ARC_SIZE_DEVICE_DESC];
+extern const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC];
+extern const uint8_t ARC_KB_report_descriptor[ARC_KB_SIZE_REPORT_DESC];
+extern const uint8_t ARC_MOUSE_report_descriptor[ARC_MOUSE_SIZE_REPORT_DESC];
+extern const uint8_t ARC_string_lang_ID[ARC_SIZE_STRING_LANGID];
+extern const uint8_t ARC_string_vendor[ARC_SIZE_STRING_VENDOR];
+extern const uint8_t ARC_string_product[ARC_SIZE_STRING_PRODUCT];
+extern uint8_t ARC_string_serial[ARC_SIZE_STRING_SERIAL];
 
 #endif /* __USB_DESC_H */
 

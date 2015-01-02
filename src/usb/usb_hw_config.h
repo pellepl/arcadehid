@@ -5,6 +5,8 @@
 #include "usb_type.h"
 
 extern volatile uint8_t kb_tx_complete;
+extern volatile uint8_t mouse_tx_complete;
+
 extern uint8_t kb_led_state;
 
 void Enter_LowPowerMode(void);

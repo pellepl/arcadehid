@@ -10,7 +10,7 @@
 #include "linker_symaccess.h"
 #include "app.h"
 #include "gpio.h"
-#include "usb_kb.h"
+#include "usb/usb_arcade.h"
 
 static void assert_cb(void) {
 //  uint32_t ipsr;
@@ -34,7 +34,7 @@ int main(void) {
 
   IO_define(IOSTD, io_uart, UARTSTDIN);
 
-  USB_KB_init();
+  USB_ARC_init();
 
   print("\n\n\nHardware initialization done\n");
 

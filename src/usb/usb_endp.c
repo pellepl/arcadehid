@@ -57,5 +57,12 @@ void EP1_IN_Callback(void)
   kb_tx_complete = 1;
 }
 
+void EP2_IN_Callback(void)
+{
+  /* Set the transfer complete token to inform upper layer that the current
+  transfer has been complete */
+  mouse_tx_complete = 1;
+}
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

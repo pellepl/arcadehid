@@ -15,7 +15,7 @@
 
 #include "gpio.h"
 
-#include "usb_kb.h"
+#include "usb/usb_arcade.h"
 
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
@@ -40,7 +40,8 @@ static void *_args[16];
 
 static int f_usb_init(void);
 static int f_usb_send(int c);
-static int f_usb_test(uint8_t k);
+static int f_usb_test(void);
+static int f_usb_test2(void);
 
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
@@ -72,6 +73,9 @@ static cmd c_tbl[] = {
     },
     { .name = "usb_test", .fn = (func) f_usb_test,
         .help = "Send over usb\n"
+    },
+    { .name = "usb_test2", .fn = (func) f_usb_test2,
+        .help = "Send over usb 2\n"
     },
 
     { .name = "dump", .fn = (func) f_dump,
@@ -139,30 +143,39 @@ static cmd c_tbl[] = {
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static int f_usb_init(void) {
-  USB_KB_init();
+  USB_ARC_init();
   return 0;
 }
 
 static int f_usb_send(int b) {
-  usb_report r;
+  usb_kb_report r;
   memset(&r, 0, sizeof(r));
   r.modifiers = 0;
   r.keymap[0] = b;
-  USB_KB_tx(&r);
+  USB_ARC_KB_tx(&r);
   return 0;
 }
 
-static int f_usb_test(uint8_t k) {
-  usb_report r;
-  if (k == 0) k = USB_REPORT_KEYMAP_SIZE;
+static int f_usb_test(void) {
+  usb_kb_report r;
+  int k = USB_KB_REPORT_KEYMAP_SIZE;
   r.modifiers = 0;
   int i;
   for (i = 0; i < k; i++)
     r.keymap[i] = i+4;
-  USB_KB_tx(&r);
+  USB_ARC_KB_tx(&r);
   for (i = 0; i < k; i++)
     r.keymap[i] = 0;
-  USB_KB_tx(&r);
+  USB_ARC_KB_tx(&r);
+  return 0;
+}
+static int f_usb_test2(void) {
+  usb_mouse_report r;
+  r.modifiers = 0;
+  r.dx = -8;
+  r.dy = 8;
+  r.wheel = 0;
+  USB_ARC_MOUSE_tx(&r);
   return 0;
 }
 

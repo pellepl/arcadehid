@@ -108,7 +108,7 @@ typedef u16_t system_counter_type;
 
 /** USB **/
 
-#define USB_REPORT_KEYMAP_SIZE    16 /* 6 */
+#define USB_KB_REPORT_KEYMAP_SIZE    16 /* 6 */
 
 /** DEBUG **/
 

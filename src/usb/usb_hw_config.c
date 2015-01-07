@@ -16,38 +16,6 @@ uint8_t kb_led_state = 0;
 
 static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len);
 
-void Enter_LowPowerMode(void) {
-  /* Set the device state to suspend */
-  bDeviceState = SUSPENDED;
-
-#ifdef CONFIG_HY_TEST_BOARD
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-#endif
-}
-
-void Leave_LowPowerMode(void) {
-  DEVICE_INFO *pInfo = &Device_Info;
-
-  /* Set the device state to the correct state */
-  if (pInfo->Current_Configuration != 0) {
-    /* Device configured */
-    bDeviceState = CONFIGURED;
-  } else {
-    bDeviceState = ATTACHED;
-  }
-#ifdef CONFIG_HY_TEST_BOARD
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
-#endif
-}
-
 void USB_Cable_Config(FunctionalState NewState) {
 #ifdef CONFIG_HY_TEST_BOARD
   if (NewState != DISABLE) {

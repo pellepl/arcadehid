@@ -9,8 +9,6 @@ extern volatile uint8_t mouse_tx_complete;
 
 extern uint8_t kb_led_state;
 
-void Enter_LowPowerMode(void);
-void Leave_LowPowerMode(void);
 void USB_Cable_Config (FunctionalState NewState);
 void Get_SerialNum(void);
 

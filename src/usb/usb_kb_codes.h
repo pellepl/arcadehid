@@ -5,19 +5,19 @@
  *      Author: petera
  */
 
-#ifndef SRC_USB_USB_ARC_CODES_H_
-#define SRC_USB_USB_ARC_CODES_H_
+#ifndef USB_KB_CODES_H_
+#define USB_KB_CODES_H_
 
 #define MOD_BIT(c) (1 << ((c) & 0x7))
 
-#define ARC_MOD_LEFT_CTRL      (1<<0)
-#define ARC_MOD_LEFT_SHIFT     (1<<1)
-#define ARC_MOD_LEFT_ALT       (1<<2)
-#define ARC_MOD_LEFT_GUI       (1<<3)
-#define ARC_MOD_RIGHT_CTRL     (1<<4)
-#define ARC_MOD_RIGHT_SHIFT    (1<<5)
-#define ARC_MOD_RIGHT_ALT      (1<<6)
-#define ARC_MOD_RIGHT_GUI      (1<<7)
+#define KB_MOD_LEFT_CTRL      (1<<0)
+#define KB_MOD_LEFT_SHIFT     (1<<1)
+#define KB_MOD_LEFT_ALT       (1<<2)
+#define KB_MOD_LEFT_GUI       (1<<3)
+#define KB_MOD_RIGHT_CTRL     (1<<4)
+#define KB_MOD_RIGHT_SHIFT    (1<<5)
+#define KB_MOD_RIGHT_ALT      (1<<6)
+#define KB_MOD_RIGHT_GUI      (1<<7)
 
 enum kb_hid_codes {
     KC_NO = 0,
@@ -222,4 +222,4 @@ enum kb_hid_codes {
     MOD_RGUI,
 };
 
-#endif /* SRC_USB_USB_ARC_CODES_H_ */
+#endif /* USB_KB_CODES_H_ */

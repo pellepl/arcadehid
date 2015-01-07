@@ -181,7 +181,7 @@ void Suspend(void)
 	/* enter system in STOP mode, only when wakeup flag in not set */
 	if((_GetISTR()&ISTR_WKUP)==0)
 	{
-    Enter_LowPowerMode();
+    //Enter_LowPowerMode();
 // TODO PETER   		__WFI();
 		/* Reset SLEEPDEEP bit of Cortex System Control Register */
 #if defined (STM32F30X) || defined (STM32F37X)
@@ -234,7 +234,7 @@ void Resume_Init(void)
   
   /* restore full power */
   /* ... on connected devices */
-  Leave_LowPowerMode();
+  //Leave_LowPowerMode();
 
   /* reset FSUSP bit */
   _SetCNTR(IMR_MSK);

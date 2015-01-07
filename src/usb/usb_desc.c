@@ -176,7 +176,7 @@ const uint8_t ARC_KB_report_descriptor[ARC_KB_SIZE_REPORT_DESC] =
       0x26, 0xff, 0x00,
       0x05, 0x07,                         //     Usage Page (Key codes)
       0x19, 0x00,                         //     Usage Minimum (0)
-      0x29, 0xfe,                         //     Usage Maximum (254)
+      0x29, 0xbc,                         //     Usage Maximum (188)
       0x81, 0x00,                         //     Input (Data, Array) Key array(6 bytes)
 
       0x95, 0x03,                         //     Report Count (3)

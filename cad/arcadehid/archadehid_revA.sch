@@ -3545,7 +3545,7 @@ Pogo pins- HW-11044</description>
 <wire x1="193.04" y1="22.86" x2="284.48" y2="22.86" width="0.1524" layer="94"/>
 <wire x1="193.04" y1="15.24" x2="284.48" y2="15.24" width="0.1524" layer="94"/>
 <wire x1="193.04" y1="7.62" x2="284.48" y2="7.62" width="0.1524" layer="94"/>
-<text x="195.58" y="17.78" size="1.778" layer="94">SPYBOT COMMON</text>
+<text x="195.58" y="17.78" size="1.778" layer="94">ARCADEHID CONNEX</text>
 <text x="195.58" y="10.16" size="1.778" layer="94">MCU</text>
 </plain>
 <instances>

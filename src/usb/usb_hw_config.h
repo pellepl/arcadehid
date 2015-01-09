@@ -4,6 +4,18 @@
 #include "system.h"
 #include "usb_type.h"
 
+#ifdef CONFIG_ARCHID_VCD
+#include "ringbuf.h"
+
+#define USB_VCD_TX_BUF_SIZE   1024
+#define USB_VCD_RX_BUF_SIZE   512
+
+extern ringbuf tx_rb;
+extern ringbuf rx_rb;
+
+void Handle_USBAsynchXfer(void);
+#endif
+
 extern volatile uint8_t kb_tx_complete;
 extern volatile uint8_t mouse_tx_complete;
 

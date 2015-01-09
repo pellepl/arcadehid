@@ -80,6 +80,7 @@ void USB_Istr(void)
  __IO uint32_t EP[8];
   
   wIstr = _GetISTR();
+
 #if (IMR_MSK & ISTR_CTR)
   if (wIstr & ISTR_CTR & wInterrupt_Mask)
   {
@@ -167,6 +168,7 @@ void USB_Istr(void)
 #endif
   }
 #endif
+
   /*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*/
 #if (IMR_MSK & ISTR_ESOF)
   if (wIstr & ISTR_ESOF & wInterrupt_Mask)

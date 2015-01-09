@@ -33,12 +33,26 @@
 #include "usb_desc.h"
 #include "usb_pwr.h"
 #include "usb_hw_config.h"
+#include "usb_conf.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 uint32_t ProtocolValue;
+
+#ifdef CONFIG_ARCHID_VCD
+
+uint8_t Request = 0;
+
+LINE_CODING linecoding =
+  {
+    115200, /* baud rate*/
+    0x00,   /* stop bits-1*/
+    0x00,   /* parity - none*/
+    0x08    /* no. of bits 8*/
+  };
+#endif
 
 /* -------------------------------------------------------------------------- */
 /*  Structures initializations */
@@ -185,6 +199,31 @@ void ARC_Reset(void)
   SetEPRxStatus(ENDP2, EP_RX_DIS);
   SetEPTxStatus(ENDP2, EP_TX_NAK);
 
+#ifdef CONFIG_ARCHID_VCD
+
+  /* Initialize Endpoint 5 */
+  SetEPType(ENDP5, EP_BULK);
+  SetEPTxAddr(ENDP5, ENDP5_TXADDR);
+  SetEPTxStatus(ENDP5, EP_TX_NAK);
+  SetEPRxStatus(ENDP5, EP_RX_DIS);
+
+  /* Initialize Endpoint 3 */
+  SetEPType(ENDP3, EP_INTERRUPT);
+  SetEPTxAddr(ENDP3, ENDP3_TXADDR);
+  SetEPRxStatus(ENDP3, EP_RX_DIS);
+  SetEPTxStatus(ENDP3, EP_TX_NAK);
+
+  /* Initialize Endpoint 4 */
+  SetEPType(ENDP4, EP_BULK);
+  SetEPRxAddr(ENDP4, ENDP4_RXADDR);
+  SetEPRxCount(ENDP4, VIRTUAL_COM_PORT_DATA_SIZE);
+  SetEPRxStatus(ENDP4, EP_RX_VALID);
+  SetEPTxStatus(ENDP4, EP_TX_DIS);
+#endif
+
+
+
+
   /* Set this device to response on default address */
   SetDeviceAddress(0);
   bDeviceState = ATTACHED;
@@ -231,6 +270,12 @@ void ARC_Status_In(void)
     //print("led state:%s %s\n", kb_led_state & 1 ? "NUM":"", kb_led_state & 2 ? "CAPS":"");
     old_led_state = kb_led_state;
   }
+#ifdef CONFIG_ARCHID_VCD
+  if (Request == SET_LINE_CODING)
+  {
+    Request = 0;
+  }
+#endif
 }
 
 /*******************************************************************************
@@ -250,6 +295,42 @@ uint8_t *ARC_set_configuration(uint16_t Length)
   return &kb_led_state;
 }
 
+#ifdef CONFIG_ARCHID_VCD
+/*******************************************************************************
+* Function Name  : Virtual_Com_Port_GetLineCoding.
+* Description    : send the linecoding structure to the PC host.
+* Input          : Length.
+* Output         : None.
+* Return         : Linecoding structure base address.
+*******************************************************************************/
+uint8_t *ARC_VCP_GetLineCoding(uint16_t Length)
+{
+  if (Length == 0)
+  {
+    pInformation->Ctrl_Info.Usb_wLength = sizeof(linecoding);
+    return NULL;
+  }
+  return(uint8_t *)&linecoding;
+}
+
+/*******************************************************************************
+* Function Name  : Virtual_Com_Port_SetLineCoding.
+* Description    : Set the linecoding structure fields.
+* Input          : Length.
+* Output         : None.
+* Return         : Linecoding structure base address.
+*******************************************************************************/
+uint8_t *ARC_VCP_SetLineCoding(uint16_t Length)
+{
+  if (Length == 0)
+  {
+    pInformation->Ctrl_Info.Usb_wLength = sizeof(linecoding);
+    return NULL;
+  }
+  return(uint8_t *)&linecoding;
+}
+#endif
+
 /*******************************************************************************
 * Function Name  : ARC_Data_Setup
 * Description    : Handle the data class specific requests.
@@ -261,6 +342,7 @@ RESULT ARC_Data_Setup(uint8_t RequestNo)
 {
   uint8_t *(*CopyRoutine)(uint16_t);
   CopyRoutine = NULL;
+
   if ((RequestNo == GET_DESCRIPTOR)
       && (Type_Recipient == (STANDARD_REQUEST | INTERFACE_RECIPIENT))
       && (pInformation->USBwIndex0 == 0 || pInformation->USBwIndex0 == 1))
@@ -293,6 +375,26 @@ RESULT ARC_Data_Setup(uint8_t RequestNo)
       CopyRoutine = ARC_set_configuration;
     }
   }
+#ifdef CONFIG_ARCHID_VCD
+
+  else if (RequestNo == GET_LINE_CODING)
+  {
+    if (Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
+    {
+      CopyRoutine = ARC_VCP_GetLineCoding;
+    }
+  }
+  else if (RequestNo == SET_LINE_CODING)
+  {
+    if (Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
+    {
+      CopyRoutine = ARC_VCP_SetLineCoding;
+    }
+    Request = SET_LINE_CODING;
+  }
+#endif
+
+
 
   if (CopyRoutine == NULL)
   {
@@ -313,16 +415,23 @@ RESULT ARC_Data_Setup(uint8_t RequestNo)
 *******************************************************************************/
 RESULT ARC_NoData_Setup(uint8_t RequestNo)
 {
-  if ((Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT))
-      && (RequestNo == SET_PROTOCOL))
-  {
-    return ARC_SetProtocol();
+  if (Type_Recipient == (CLASS_REQUEST | INTERFACE_RECIPIENT)) {
+    if (RequestNo == SET_PROTOCOL)
+    {
+      return ARC_SetProtocol();
+    }
+#ifdef CONFIG_ARCHID_VCD
+    else if (RequestNo == SET_COMM_FEATURE)
+    {
+      return USB_SUCCESS;
+    }
+    else if (RequestNo == SET_CONTROL_LINE_STATE)
+    {
+      return USB_SUCCESS;
+    }
+#endif
   }
-
-  else
-  {
-    return USB_UNSUPPORT;
-  }
+  return USB_UNSUPPORT;
 }
 
 /*******************************************************************************
@@ -408,12 +517,19 @@ uint8_t *ARC_GetHIDDescriptor(uint16_t Length)
 *******************************************************************************/
 RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
 {
+  print("get ifc setting %i/%i\n", Interface, AlternateSetting);
   if (AlternateSetting > 0)
   {
+    print("UNSUPPORT ALT\n");
     return USB_UNSUPPORT;
   }
-  else if (Interface > 0)
+#ifdef CONFIG_ARCHID_VCD
+  else if (Interface > 1)
+#else
+    else if (Interface > 0)
+#endif
   {
+    print("UNSUPPORT IFC\n");
     return USB_UNSUPPORT;
   }
   return USB_SUCCESS;

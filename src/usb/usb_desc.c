@@ -74,14 +74,18 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     USB_CONFIGURATION_DESCRIPTOR_TYPE, /* bDescriptorType: Configuration */
     ARC_SIZE_CONFIG_DESC,               /* wTotalLength: Bytes returned */
     0x00,
-    0x02,         /*bNumInterfaces: 1 interface*/
+#ifdef CONFIG_ARCHID_VCD
+    0x04,         /*bNumInterfaces: nbr of interfaces */
+#else
+    0x02,         /*bNumInterfaces: nbr of interfaces */
+#endif
     0x01,         /*bConfigurationValue: Configuration value*/
     0x00,         /*iConfiguration: Index of string descriptor describing
                                      the configuration*/
     0xE0,         /*bmAttributes: Self powered */
     0x32,         /*MaxPower 100 mA: this current is used for detecting Vbus*/
 
-    /************** 1:KEYBOARD              ****************/
+    /************** ifc 1:KEYBOARD          ****************/
     /************** Descriptor of interface ****************/
     /* 09 */
     0x09,         /*bLength: Interface Descriptor size*/
@@ -116,7 +120,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     24,          /*bInterval: Polling Interval (24 ms)*/
     /* 34 */
 
-    /************** 2:MOUSE                 ****************/
+    /************** ifc 2:MOUSE             ****************/
     /************** Descriptor of interface ****************/
     /* 34 */
     0x09,         /*bLength: Interface Descriptor size*/
@@ -150,6 +154,79 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x00,
     1,          /*bInterval: Polling Interval (1 ms)*/
     /* 59 */
+
+#ifdef CONFIG_ARCHID_VCD
+    /************** ifc 3:VCD                ****************/
+    /*Interface Descriptor*/
+    0x09,   /* bLength: Interface Descriptor size */
+    USB_INTERFACE_DESCRIPTOR_TYPE,  /* bDescriptorType: Interface */
+    /* Interface descriptor type */
+    0x02,   /* bInterfaceNumber: Number of Interface */
+    0x00,   /* bAlternateSetting: Alternate setting */
+    0x01,   /* bNumEndpoints: One endpoints used */
+    0x02,   /* bInterfaceClass: Communication Interface Class */
+    0x02,   /* bInterfaceSubClass: Abstract Control Model */
+    0x01,   /* bInterfaceProtocol: Common AT commands */
+    0x00,   /* iInterface: */
+    /*Header Functional Descriptor*/
+    0x05,   /* bLength: Endpoint Descriptor size */
+    0x24,   /* bDescriptorType: CS_INTERFACE */
+    0x00,   /* bDescriptorSubtype: Header Func Desc */
+    0x10,   /* bcdCDC: spec release number */
+    0x01,
+    /*Call Management Functional Descriptor*/
+    0x05,   /* bFunctionLength */
+    0x24,   /* bDescriptorType: CS_INTERFACE */
+    0x01,   /* bDescriptorSubtype: Call Management Func Desc */
+    0x00,   /* bmCapabilities: D0+D1 */
+    0x01,   /* bDataInterface: 1 */
+    /*ACM Functional Descriptor*/
+    0x04,   /* bFunctionLength */
+    0x24,   /* bDescriptorType: CS_INTERFACE */
+    0x02,   /* bDescriptorSubtype: Abstract Control Management desc */
+    0x02,   /* bmCapabilities */
+    /*Union Functional Descriptor*/
+    0x05,   /* bFunctionLength */
+    0x24,   /* bDescriptorType: CS_INTERFACE */
+    0x06,   /* bDescriptorSubtype: Union func desc */
+    0x02,   /* bMasterInterface: Communication class interface */
+    0x03,   /* bSlaveInterface0: Data Class Interface */
+    /*Endpoint 3 Descriptor (was 2) IN */
+    0x07,   /* bLength: Endpoint Descriptor size */
+    USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
+    0x83,   /* bEndpointAddress: (IN3) */
+    0x03,   /* bmAttributes: Interrupt */
+    VIRTUAL_COM_PORT_INT_SIZE,      /* wMaxPacketSize: */
+    0x00,
+    0xFF,   /* bInterval: */
+    /*Data class interface descriptor*/
+    0x09,   /* bLength: Endpoint Descriptor size */
+    USB_INTERFACE_DESCRIPTOR_TYPE,  /* bDescriptorType: */
+    0x03,   /* bInterfaceNumber: Number of Interface */
+    0x00,   /* bAlternateSetting: Alternate setting */
+    0x02,   /* bNumEndpoints: Two endpoints used */
+    0x0A,   /* bInterfaceClass: CDC */
+    0x00,   /* bInterfaceSubClass: */
+    0x00,   /* bInterfaceProtocol: */
+    0x00,   /* iInterface: */
+    /*Endpoint 4 Descriptor (was 3) OUT */
+    0x07,   /* bLength: Endpoint Descriptor size */
+    USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
+    0x04,   /* bEndpointAddress: (OUT4) */
+    0x02,   /* bmAttributes: Bulk */
+    VIRTUAL_COM_PORT_DATA_SIZE,             /* wMaxPacketSize: */
+    0x00,
+    0x00,   /* bInterval: ignore for Bulk transfer */
+    /*Endpoint 5 Descriptor (was 1) IN */
+    0x07,   /* bLength: Endpoint Descriptor size */
+    USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
+    0x85,   /* bEndpointAddress: (IN5) */
+    0x02,   /* bmAttributes: Bulk */
+    VIRTUAL_COM_PORT_DATA_SIZE,             /* wMaxPacketSize: */
+    0x00,
+    0x00    /* bInterval */
+
+#endif
 }; /* config descriptor */
 
 const uint8_t ARC_KB_report_descriptor[ARC_KB_SIZE_REPORT_DESC] =

@@ -46,15 +46,26 @@
 #define ARC_OFFS_HID_DESC                   0x12
 
 #define ARC_SIZE_DEVICE_DESC                18
+#ifdef CONFIG_ARCHID_VCD
+#define ARC_SIZE_CONFIG_DESC                59+58
+#else
 #define ARC_SIZE_CONFIG_DESC                59
-#define ARC_KB_SIZE_REPORT_DESC                62
-#define ARC_MOUSE_SIZE_REPORT_DESC             74
+#endif
+#define ARC_KB_SIZE_REPORT_DESC             62
+#define ARC_MOUSE_SIZE_REPORT_DESC          74
 #define ARC_SIZE_STRING_LANGID              4
 #define ARC_SIZE_STRING_VENDOR              30
 #define ARC_SIZE_STRING_PRODUCT             31
 #define ARC_SIZE_STRING_SERIAL              26
 
 #define STANDARD_ENDPOINT_DESC_SIZE             0x09
+
+#ifdef CONFIG_ARCHID_VCD
+
+#define VIRTUAL_COM_PORT_DATA_SIZE              64
+#define VIRTUAL_COM_PORT_INT_SIZE               8
+
+#endif
 
 /* Exported functions ------------------------------------------------------- */
 extern const uint8_t ARC_device_descriptor[ARC_SIZE_DEVICE_DESC];

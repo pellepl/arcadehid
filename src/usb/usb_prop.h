@@ -43,6 +43,14 @@ typedef enum _HID_REQUESTS
   SET_PROTOCOL
 } HID_REQUESTS;
 
+typedef struct
+{
+  uint32_t bitrate;
+  uint8_t format;
+  uint8_t paritytype;
+  uint8_t datatype;
+}LINE_CODING;
+
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
@@ -60,10 +68,11 @@ uint8_t *ARC_GetConfigDescriptor(uint16_t);
 uint8_t *ARC_GetStringDescriptor(uint16_t);
 RESULT ARC_SetProtocol(void);
 uint8_t *ARC_GetProtocolValue(uint16_t Length);
-RESULT ARC_SetProtocol(void);
 uint8_t *ARC_GetKBReportDescriptor(uint16_t Length);
 uint8_t *ARC_GetMouseReportDescriptor(uint16_t Length);
 uint8_t *ARC_GetHIDDescriptor(uint16_t Length);
+uint8_t *ARC_VCP_GetLineCoding(uint16_t Length);
+uint8_t *ARC_VCP_SetLineCoding(uint16_t Length);
 
 /* Exported define -----------------------------------------------------------*/
 #define ARC_GetConfiguration          NOP_Process
@@ -77,6 +86,18 @@ uint8_t *ARC_GetHIDDescriptor(uint16_t Length);
 //#define ARC_SetDeviceAddress          NOP_Process
 
 #define REPORT_DESCRIPTOR                  0x22
+
+#define SEND_ENCAPSULATED_COMMAND   0x00
+#define GET_ENCAPSULATED_RESPONSE   0x01
+#define SET_COMM_FEATURE            0x02
+#define GET_COMM_FEATURE            0x03
+#define CLEAR_COMM_FEATURE          0x04
+#define SET_LINE_CODING             0x20
+#define GET_LINE_CODING             0x21
+#define SET_CONTROL_LINE_STATE      0x22
+#define SEND_BREAK                  0x23
+
+
 
 #endif /* __USB_PROP_H */
 

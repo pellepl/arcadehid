@@ -30,25 +30,20 @@
 #include "usb_hw_config.h"
 #include "usb_lib.h"
 #include "usb_istr.h"
+#include "usb_conf.h"
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+#ifdef CONFIG_ARCHID_VCD
+#include "usb_desc.h"
+#include "usb_pwr.h"
 
-/* Private function prototypes -----------------------------------------------*/
-/* Private functions ---------------------------------------------------------*/
-/*******************************************************************************
-* Function Name  : EP1_OUT_Callback.
-* Description    : EP1 OUT Callback Routine.
-* Input          : None.
-* Output         : None.
-* Return         : None.
-*******************************************************************************/
+/* Interval between sending IN packets in frame number (1 frame = 1ms) */
+#define VCOMPORT_IN_FRAME_INTERVAL             5
 
-//void EP1_OUT_Callback(void)
-//{
-//}
+uint8_t USB_Rx_Buffer[VIRTUAL_COM_PORT_DATA_SIZE];
+extern ringbuf tx_rb;
+extern uint8_t USB_Tx_State;
+
+#endif
 
 void EP1_IN_Callback(void)
 {
@@ -63,6 +58,73 @@ void EP2_IN_Callback(void)
   transfer has been complete */
   mouse_tx_complete = 1;
 }
+
+#ifdef CONFIG_ARCHID_VCD
+
+void EP5_IN_Callback (void)
+{
+  if (USB_Tx_State == 1)
+  {
+    u8_t *buf;
+    int avail = ringbuf_available_linear(&tx_rb, &buf);
+    if (avail  == 0) {
+      USB_Tx_State = 0;
+      return;
+    }
+
+    if (avail > VIRTUAL_COM_PORT_DATA_SIZE)
+    {
+      avail = VIRTUAL_COM_PORT_DATA_SIZE;
+    }
+
+    UserToPMABufferCopy(buf, ENDP5_TXADDR, avail);
+    ringbuf_get(&tx_rb, 0, avail);
+    SetEPTxCount(ENDP5, avail);
+    SetEPTxValid(ENDP5);
+  }
+}
+
+void EP4_OUT_Callback(void)
+{
+  uint16_t USB_Rx_Cnt;
+
+  /* Get the received data buffer and update the counter */
+  USB_Rx_Cnt = USB_SIL_Read(EP4_OUT, USB_Rx_Buffer);
+
+  /* USB data will be immediately processed, this allow next USB traffic being
+  NAKed till the end of the USART Xfer */
+
+  ringbuf_put(&rx_rb, USB_Rx_Buffer, USB_Rx_Cnt);
+
+  /* Enable the receive of data on EP4 */
+  SetEPRxValid(ENDP4);
+}
+
+/*******************************************************************************
+* Function Name  : SOF_Callback / INTR_SOFINTR_Callback
+* Description    :
+* Input          : None.
+* Output         : None.
+* Return         : None.
+*******************************************************************************/
+void SOF_Callback(void)
+{
+  static uint32_t FrameCount = 0;
+
+  if(bDeviceState == CONFIGURED)
+  {
+    if (FrameCount++ == VCOMPORT_IN_FRAME_INTERVAL)
+    {
+      /* Reset the frame counter */
+      FrameCount = 0;
+
+      /* Check the data to be sent through IN pipe */
+      Handle_USBAsynchXfer();
+    }
+  }
+}
+
+#endif
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

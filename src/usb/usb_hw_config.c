@@ -3,9 +3,12 @@
 #include "usb_prop.h"
 #include "usb_desc.h"
 #include "usb_hw_config.h"
+#include "ringbuf.h"
 
 #include "usb_arcade.h"
 #include "usb_pwr.h"
+
+#include "usb_serial.h"
 
 ErrorStatus HSEStartUpStatus;
 /* Extern variables ----------------------------------------------------------*/
@@ -13,6 +16,17 @@ volatile uint8_t kb_tx_complete = 1;
 volatile uint8_t mouse_tx_complete = 1;
 
 uint8_t kb_led_state = 0;
+
+#ifdef CONFIG_ARCHID_VCD
+
+uint8_t tx_buf[USB_VCD_TX_BUF_SIZE];
+uint8_t rx_buf[USB_VCD_RX_BUF_SIZE];
+ringbuf tx_rb;
+ringbuf rx_rb;
+
+uint8_t USB_Tx_State = 0;
+
+#endif
 
 static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len);
 
@@ -99,6 +113,76 @@ static void IntToUnicode(uint32_t value, uint8_t *pbuf, uint8_t len) {
 }
 
 void USB_ARC_init(void) {
+#ifdef CONFIG_ARCHID_VCD
+  ringbuf_init(&tx_rb, tx_buf, sizeof(tx_buf));
+  ringbuf_init(&rx_rb, rx_buf, sizeof(rx_buf));
+#endif
   USB_Init();
 }
+
+#ifdef CONFIG_ARCHID_VCD
+u16_t USB_SER_rx_avail(void) {
+  return ringbuf_available(&rx_rb);
+}
+
+s32_t USB_SER_rx_char(u8_t *c) {
+  return ringbuf_getc(&rx_rb, c);
+}
+
+s32_t USB_SER_rx_buf(u8_t *buf, u16_t len) {
+  return ringbuf_get(&rx_rb, buf, len);
+}
+
+s32_t USB_SER_tx_char(u8_t c) {
+  return ringbuf_putc(&tx_rb, c);
+}
+
+s32_t USB_SER_tx_buf(u8_t *buf, u16_t len) {
+  return ringbuf_put(&tx_rb, buf, len);
+}
+
+void USB_SER_set_rx_callback(usb_serial_rx_cb cb, void *arg) {
+  // TODO
+}
+
+void USB_SER_get_rx_callback(usb_serial_rx_cb *cb, void **arg) {
+  // TODO
+}
+
+bool USB_SER_assure_tx(bool on) {
+  // TODO
+  return FALSE;
+}
+
+void USB_SER_tx_drain(void) {
+  ringbuf_clear(&tx_rb);
+}
+
+void USB_SER_tx_flush(void) {
+  // TODO
+}
+
+void Handle_USBAsynchXfer(void) {
+
+  if (USB_Tx_State != 1) {
+    u8_t *buf;
+    int avail = ringbuf_available_linear(&tx_rb, &buf);
+    if (avail == 0) {
+      USB_Tx_State = 0;
+      return;
+    }
+
+    if (avail > VIRTUAL_COM_PORT_DATA_SIZE) {
+      avail = VIRTUAL_COM_PORT_DATA_SIZE;
+    }
+
+    USB_Tx_State = 1;
+    UserToPMABufferCopy(buf, ENDP1_TXADDR, avail);
+    ringbuf_get(&tx_rb, 0, avail);
+    SetEPTxCount(ENDP1, avail);
+    SetEPTxValid(ENDP1 );
+  }
+
+}
+#endif
 

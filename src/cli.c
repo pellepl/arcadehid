@@ -42,6 +42,7 @@ static int f_usb_init(void);
 static int f_usb_send(int c);
 static int f_usb_test(void);
 static int f_usb_test2(void);
+static int f_usb_test3(void);
 
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
@@ -76,6 +77,9 @@ static cmd c_tbl[] = {
     },
     { .name = "usb_test2", .fn = (func) f_usb_test2,
         .help = "Send over usb 2\n"
+    },
+    { .name = "usb_test3", .fn = (func) f_usb_test3,
+        .help = "Send over usb 3\n"
     },
 
     { .name = "dump", .fn = (func) f_dump,
@@ -176,6 +180,15 @@ static int f_usb_test2(void) {
   r.dy = 8;
   r.wheel = 0;
   USB_ARC_MOUSE_tx(&r);
+  return 0;
+}
+
+#include "usb_serial.h"
+
+static int f_usb_test3(void) {
+#ifdef CONFIG_ARCHID_VCD
+  USB_SER_tx_buf("Hello wurlde!\n", 14);
+#endif
   return 0;
 }
 

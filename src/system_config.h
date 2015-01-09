@@ -94,10 +94,11 @@ typedef u16_t system_counter_type;
 #define CONFIG_ARCHID_VCD
 
 /** IO **/
-#define CONFIG_IO_MAX   1
+#define CONFIG_IO_MAX   2
 
 #define IOSTD        0
 #define IODBG        IOSTD
+#define IOUSB        1
 
 /** MATH **/
 #define CONFIG_TRIGQ_TABLE

@@ -33,6 +33,7 @@ int main(void) {
   SYS_set_assert_behaviour(ASSERT_RESET);
 
   IO_define(IOSTD, io_uart, UARTSTDIN);
+  IO_define(IOUSB, io_usb, -1);
 
   USB_ARC_init();
 

@@ -187,7 +187,7 @@ static int f_usb_test2(void) {
 
 static int f_usb_test3(void) {
 #ifdef CONFIG_ARCHID_VCD
-  USB_SER_tx_buf("Hello wurlde!\n", 14);
+  ioprint(IOUSB, "Hej kamrater!\n");
 #endif
   return 0;
 }

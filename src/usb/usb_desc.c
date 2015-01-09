@@ -179,7 +179,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x24,   /* bDescriptorType: CS_INTERFACE */
     0x01,   /* bDescriptorSubtype: Call Management Func Desc */
     0x00,   /* bmCapabilities: D0+D1 */
-    0x01,   /* bDataInterface: 1 */
+    0x03,   /* bDataInterface: 3 *////////////0x01,   /* bDataInterface: 1 */
     /*ACM Functional Descriptor*/
     0x04,   /* bFunctionLength */
     0x24,   /* bDescriptorType: CS_INTERFACE */
@@ -189,8 +189,8 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x05,   /* bFunctionLength */
     0x24,   /* bDescriptorType: CS_INTERFACE */
     0x06,   /* bDescriptorSubtype: Union func desc */
-    0x02,   /* bMasterInterface: Communication class interface */
-    0x03,   /* bSlaveInterface0: Data Class Interface */
+    0x02,   /* bMasterInterface: Communication class interface *////////////0x00,   /* bMasterInterface: Communication class interface */
+    0x03,   /* bSlaveInterface0: Data Class Interface *//////////0x01,   /* bSlaveInterface0: Data Class Interface */
     /*Endpoint 3 Descriptor (was 2) IN */
     0x07,   /* bLength: Endpoint Descriptor size */
     USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */

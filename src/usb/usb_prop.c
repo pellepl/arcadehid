@@ -144,7 +144,6 @@ ONE_DESCRIPTOR String_Descriptor[4] =
 *******************************************************************************/
 void ARC_init(void)
 {
-
   /* Update the serial number string descriptor with the data from the unique
   ID*/
   Get_SerialNum();
@@ -258,7 +257,6 @@ void ARC_SetDeviceAddress (void)
 }
 /*******************************************************************************
 * Function Name  : ARC_Status_In.
-* Description    : Joystick status IN routine.
 * Input          : None.
 * Output         : None.
 * Return         : None.
@@ -517,10 +515,8 @@ uint8_t *ARC_GetHIDDescriptor(uint16_t Length)
 *******************************************************************************/
 RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
 {
-  print("get ifc setting %i/%i\n", Interface, AlternateSetting);
   if (AlternateSetting > 0)
   {
-    print("UNSUPPORT ALT\n");
     return USB_UNSUPPORT;
   }
 #ifdef CONFIG_ARCHID_VCD
@@ -529,7 +525,6 @@ RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
     else if (Interface > 0)
 #endif
   {
-    print("UNSUPPORT IFC\n");
     return USB_UNSUPPORT;
   }
   return USB_SUCCESS;

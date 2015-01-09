@@ -6,12 +6,14 @@
 
 #ifdef CONFIG_ARCHID_VCD
 #include "ringbuf.h"
+#include "usb_serial.h"
 
 #define USB_VCD_TX_BUF_SIZE   1024
 #define USB_VCD_RX_BUF_SIZE   512
 
 extern ringbuf tx_rb;
 extern ringbuf rx_rb;
+extern usb_serial_rx_cb rx_cb;
 
 void Handle_USBAsynchXfer(void);
 #endif

@@ -91,6 +91,8 @@ typedef u16_t system_counter_type;
 
 #define USE_COLOR_CODING
 
+#define CONFIG_ARCHID_VCD
+
 /** IO **/
 #define CONFIG_IO_MAX   1
 

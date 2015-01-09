@@ -23,7 +23,7 @@ uint8_t tx_buf[USB_VCD_TX_BUF_SIZE];
 uint8_t rx_buf[USB_VCD_RX_BUF_SIZE];
 ringbuf tx_rb;
 ringbuf rx_rb;
-
+usb_serial_rx_cb rx_cb = NULL;
 uint8_t USB_Tx_State = 0;
 
 #endif
@@ -142,11 +142,11 @@ s32_t USB_SER_tx_buf(u8_t *buf, u16_t len) {
 }
 
 void USB_SER_set_rx_callback(usb_serial_rx_cb cb, void *arg) {
-  // TODO
+  rx_cb = cb;
 }
 
 void USB_SER_get_rx_callback(usb_serial_rx_cb *cb, void **arg) {
-  // TODO
+  if (cb) *cb = rx_cb;
 }
 
 bool USB_SER_assure_tx(bool on) {
@@ -177,10 +177,10 @@ void Handle_USBAsynchXfer(void) {
     }
 
     USB_Tx_State = 1;
-    UserToPMABufferCopy(buf, ENDP1_TXADDR, avail);
+    UserToPMABufferCopy(buf, ENDP5_TXADDR, avail);
     ringbuf_get(&tx_rb, 0, avail);
-    SetEPTxCount(ENDP1, avail);
-    SetEPTxValid(ENDP1 );
+    SetEPTxCount(ENDP5, avail);
+    SetEPTxValid(ENDP5 );
   }
 
 }

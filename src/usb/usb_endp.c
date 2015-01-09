@@ -98,6 +98,10 @@ void EP4_OUT_Callback(void)
 
   /* Enable the receive of data on EP4 */
   SetEPRxValid(ENDP4);
+
+  if (rx_cb != NULL) {
+    rx_cb(ringbuf_available(&rx_rb), NULL);
+  }
 }
 
 /*******************************************************************************

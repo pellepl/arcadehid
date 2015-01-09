@@ -308,7 +308,7 @@ static int f_assert() {
 
 static int f_build(void) {
   cli_print_app_name();
-  print("\n");
+  print("\ndate:%i build:%i\n\n", SYS_build_date(), SYS_build_number());
 
   print("SYS_MAIN_TIMER_FREQ %i\n", SYS_MAIN_TIMER_FREQ);
   print("SYS_TIMER_TICK_FREQ %i\n", SYS_TIMER_TICK_FREQ);
@@ -520,7 +520,11 @@ void CLI_uart_check_char(void *a, u8_t c) {
 }
 
 DBG_ATTRIBUTE static u32_t __dbg_magic;
-
+#ifdef CONFIG_ARCHID_VCD
+static void usb_rx_cb(u16_t avail, void *arg) {
+  print("usb cdc data:%i\n", avail);
+}
+#endif
 void CLI_init() {
   if (__dbg_magic != 0x43215678) {
     __dbg_magic = 0x43215678;
@@ -537,6 +541,9 @@ void CLI_init() {
   print("build date: %i\n", SYS_build_date());
   print("\ntype '?' or 'help' for list of commands\n\n");
   print(CLI_PROMPT);
+#ifdef CONFIG_ARCHID_VCD
+  USB_SER_set_rx_callback(usb_rx_cb, NULL);
+#endif
 }
 
 static void cli_print_app_name(void) {

@@ -52,23 +52,15 @@
 /* buffer table base address */
 #define BTABLE_ADDRESS      (0x00)
 
-/* EP0  */
-/* rx/tx buffer base address */
 #define ENDP0_RXADDR        (0x40)//(0x18)
 #define ENDP0_TXADDR        (0x80)//(0x58)
-
-/* EP1  */
-/* tx buffer base address */
 #define ENDP1_TXADDR        (0xc0)
-
-/* EP2  */
-/* tx buffer base address */
-#define ENDP2_TXADDR        (0x120)
+#define ENDP2_TXADDR        (0x100)
 
 #ifdef CONFIG_ARCHID_VCD
-#define ENDP5_TXADDR        (0x128)
-#define ENDP3_TXADDR        (0x158)
-#define ENDP4_RXADDR        (0x178)
+#define ENDP3_TXADDR        (0x108)
+#define ENDP4_RXADDR        (0x110)
+#define ENDP5_TXADDR        (0x150)
 #endif
 
 /*-------------------------------------------------------------*/

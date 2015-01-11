@@ -178,6 +178,7 @@ SECTIONS
     __shared_memory_address__ = .;         /* define a global symbol at shared memory start */
     *(.shmem)
     *(.shmem.*)
+    __shared_memory_address_end__ = .;
     . = ALIGN(4);
   } >RAM
 	

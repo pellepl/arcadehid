@@ -7,10 +7,9 @@
 
 #include "timer.h"
 #include "system.h"
-#include "stm32f10x.h"
-#include "miniutils.h"
-#include "uart_driver.h"
+#include "taskq.h"
 #include "cli.h"
+#include "app.h"
 
 void TIMER_irq() {
   if (TIM_GetITStatus(STM32_SYSTEM_TIMER, TIM_IT_Update) != RESET) {
@@ -21,6 +20,7 @@ void TIMER_irq() {
       TRACE_MS_TICK(SYS_get_time_ms() & 0xff);
     }
     TASK_timer();
+    APP_timer();
     CLI_timer();
   }
 }

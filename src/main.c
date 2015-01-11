@@ -13,6 +13,7 @@
 #include "usb/usb_arcade.h"
 
 static void assert_cb(void) {
+  set_print_output(IOSTD);
 //  uint32_t ipsr;
 //  asm volatile ("MRS %0, ipsr" : "=r" (ipsr) );
 //  print("IPSR 0x%02x\nBPRI 0x%02x\n", ipsr, __get_BASEPRI());

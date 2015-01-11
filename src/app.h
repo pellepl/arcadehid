@@ -11,5 +11,6 @@
 #include "system.h"
 
 void APP_init(void);
+void APP_timer(void);
 
 #endif /* APP_H_ */

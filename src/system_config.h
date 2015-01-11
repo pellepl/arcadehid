@@ -21,7 +21,7 @@
 /****************************************/
 
 
-// enable uart1
+// enable uart2
 #define CONFIG_UART2
 
 #define CONFIG_UART_CNT   1 // update according to enabled uarts
@@ -66,6 +66,10 @@
 #define ID2                                 (0x1FFFF7EC)
 #define ID3                                 (0x1FFFF7F0)
 
+/** I2C **/
+#define I2C_MAX_ID            1
+#define I2C1_PORT             I2C1
+
 /****************************************************/
 /******** Application build time configuration ******/
 /****************************************************/
@@ -81,6 +85,13 @@ typedef u16_t system_counter_type;
 #define SYS_TIMER_TICK_FREQ   1000
 // os ticker cpu clock div
 #define SYS_OS_TICK_DIV       8
+
+/** PRINT **/
+void arcprint(const char* f, ...);
+void set_print_output(u8_t io);
+u8_t get_print_output(void);
+
+#define print(...) arcprint(__VA_ARGS__)
 
 /** UART **/
 

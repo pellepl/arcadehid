@@ -6,7 +6,7 @@
  */
 
 #include "cli.h"
-#include "uart_driver.h"
+#include "io.h"
 #include "taskq.h"
 #include "miniutils.h"
 #include "system.h"
@@ -16,6 +16,8 @@
 #include "gpio.h"
 
 #include "usb/usb_arcade.h"
+
+#include "linker_symaccess.h"
 
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
@@ -43,6 +45,8 @@ static int f_usb_send(int c);
 static int f_usb_test(void);
 static int f_usb_test2(void);
 static int f_usb_test3(void);
+
+static int f_usb_at(void);
 
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
@@ -80,6 +84,10 @@ static cmd c_tbl[] = {
     },
     { .name = "usb_test3", .fn = (func) f_usb_test3,
         .help = "Send over usb 3\n"
+    },
+
+    { .name = "AT", .fn = (func) f_usb_at,
+        .help = "Responds OK over usb\n"
     },
 
     { .name = "dump", .fn = (func) f_dump,
@@ -183,11 +191,16 @@ static int f_usb_test2(void) {
   return 0;
 }
 
-#include "usb_serial.h"
-
 static int f_usb_test3(void) {
 #ifdef CONFIG_ARCHID_VCD
   ioprint(IOUSB, "Hej kamrater!\n");
+#endif
+  return 0;
+}
+
+static int f_usb_at(void) {
+#ifdef CONFIG_ARCHID_VCD
+  ioprint(IOUSB, "OK\r\n");
 #endif
   return 0;
 }
@@ -398,12 +411,20 @@ static int f_help(char *s) {
 }
 
 static int f_dump() {
+  print("ram begin:   %08x\n", RAM_BEGIN);
+  print("ram end:     %08x\n", RAM_END);
+  print("flash begin: %08x\n", FLASH_BEGIN);
+  print("flash end:   %08x\n", FLASH_END);
+  print("shmem begin: %08x\n", SHARED_MEMORY_ADDRESS);
+  print("shmem end:   %08x\n", SHARED_MEMORY_END);
+  print("stack begin: %08x\n", STACK_START);
+  print("stack end:   %08x\n", STACK_END);
   return 0;
 }
 
 static int f_dump_trace() {
 #ifdef DBG_TRACE_MON
-  SYS_dump_trace(IOSTD);
+  SYS_dump_trace(get_print_output());
 #else
   print("trace not enabled\n");
 #endif
@@ -439,20 +460,9 @@ static int f_memfind(int hex) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-void CLI_TASK_on_input(u32_t len, void *p) {
-  if (len > sizeof(in)) {
-    DBG(D_CLI, D_WARN, "CONS input overflow\n");
-    print(CLI_PROMPT);
-    return;
-  }
-  u32_t rlen = UART_get_buf(_UART(UARTSTDIN), in, MIN(len, sizeof(in)));
-  if (rlen != len) {
-    DBG(D_CLI, D_WARN, "CONS length mismatch\n");
-    print(CLI_PROMPT);
-    return;
-  }
+static void CLI_parse(u32_t len, u8_t *buf) {
   cursor cursor;
-  strarg_init(&cursor, (char*) in, rlen);
+  strarg_init(&cursor, (char*) buf, len);
   strarg arg;
   _argc = 0;
   func fn = NULL;
@@ -509,22 +519,66 @@ void CLI_TASK_on_input(u32_t len, void *p) {
   print(CLI_PROMPT);
 }
 
+void CLI_TASK_on_uart_input(u32_t len, void *p) {
+  set_print_output(IOSTD);
+  if (len > sizeof(in)) {
+    DBG(D_CLI, D_WARN, "CONS input overflow\n");
+    print(CLI_PROMPT);
+    return;
+  }
+  u32_t rlen = IO_get_buf(IOSTD, in, MIN(len, sizeof(in)));
+  if (rlen != len) {
+    DBG(D_CLI, D_WARN, "CONS length mismatch\n");
+    print(CLI_PROMPT);
+    return;
+  }
+  CLI_parse(rlen, in);
+}
+
+#ifdef CONFIG_ARCHID_VCD
+void CLI_TASK_on_usb_input(u32_t len, void *p) {
+  set_print_output(IOUSB);
+  if (len > sizeof(in)) {
+    DBG(D_CLI, D_WARN, "CONS input overflow\n");
+    print(CLI_PROMPT);
+    return;
+  }
+  CLI_parse(len, in);
+  set_print_output(IOSTD);
+}
+#endif
+
 void CLI_timer() {
 }
 
 void CLI_uart_check_char(void *a, u8_t c) {
   if (c == '\n' || c == '\r') {
-    task *t = TASK_create(CLI_TASK_on_input, 0);
-    TASK_run(t, UART_rx_available(_UART(UARTSTDIN)), NULL);
+    task *t = TASK_create(CLI_TASK_on_uart_input, 0);
+    TASK_run(t, IO_rx_available(IOSTD), NULL);
   }
 }
 
-DBG_ATTRIBUTE static u32_t __dbg_magic;
 #ifdef CONFIG_ARCHID_VCD
 static void usb_rx_cb(u16_t avail, void *arg) {
-  print("usb cdc data:%i\n", avail);
+  int in_ix = 0;
+  while ((avail = IO_rx_available(IOUSB)) > 0) {
+    int len = MIN(avail, sizeof(in) - in_ix);
+    IO_get_buf(IOUSB, &in[in_ix], len);
+    in_ix += len;
+    if (in_ix >= sizeof(in)) break;
+  }
+  int i;
+  for (i = 0; i < in_ix; i++) {
+    if (in[i] == '\r' || in[i] == '\n') {
+      task *t = TASK_create(CLI_TASK_on_usb_input, 0);
+      TASK_run(t, i, NULL);
+    }
+  }
 }
 #endif
+
+DBG_ATTRIBUTE static u32_t __dbg_magic;
+
 void CLI_init() {
   if (__dbg_magic != 0x43215678) {
     __dbg_magic = 0x43215678;
@@ -534,6 +588,10 @@ void CLI_init() {
   memset(&cli_state, 0, sizeof(cli_state));
   DBG(D_CLI, D_DEBUG, "CLI init\n");
   UART_set_callback(_UART(UARTSTDIN), CLI_uart_check_char, NULL);
+#ifdef CONFIG_ARCHID_VCD
+  USB_SER_set_rx_callback(usb_rx_cb, NULL);
+#endif
+
   print ("\n");
   cli_print_app_name();
   print("\n\n");
@@ -541,9 +599,6 @@ void CLI_init() {
   print("build date: %i\n", SYS_build_date());
   print("\ntype '?' or 'help' for list of commands\n\n");
   print(CLI_PROMPT);
-#ifdef CONFIG_ARCHID_VCD
-  USB_SER_set_rx_callback(usb_rx_cb, NULL);
-#endif
 }
 
 static void cli_print_app_name(void) {

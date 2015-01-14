@@ -8,8 +8,11 @@
 #ifndef USB_KB_CODES_H_
 #define USB_KB_CODES_H_
 
+#include "system.h"
+
 #define MOD_BIT(c) (1 << ((c) & 0x7))
 
+#define KB_MOD_NONE           0
 #define KB_MOD_LEFT_CTRL      (1<<0)
 #define KB_MOD_LEFT_SHIFT     (1<<1)
 #define KB_MOD_LEFT_ALT       (1<<2)
@@ -19,7 +22,7 @@
 #define KB_MOD_RIGHT_ALT      (1<<6)
 #define KB_MOD_RIGHT_GUI      (1<<7)
 
-enum kb_hid_codes {
+enum kb_hid_code {
     KC_NO = 0,
     KC_ROLL_OVER,
     KC_POST_FAIL,
@@ -72,7 +75,7 @@ enum kb_hid_codes {
     KC_BSLASH, // \ |
     KC_NONUS_HASH, // Non-US # ~
     KC_SCOLON, // ; :
-    KC_QUOTE, // ' "
+    KC_QUOTE, // ' {.name="
     KC_GRAVE, // ~ `
     KC_COMMA, // < ,
     KC_DOT,   // > .
@@ -221,5 +224,13 @@ enum kb_hid_codes {
     MOD_RALT,
     MOD_RGUI,
 };
+
+
+typedef struct {
+  const char *name;
+  const char *keys;
+} keymap;
+
+const keymap *USB_KB_get_keymap(enum kb_hid_code code);
 
 #endif /* USB_KB_CODES_H_ */

@@ -19,6 +19,8 @@
 
 #include "linker_symaccess.h"
 
+#include "usb_kb_codes.h"
+
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
 
@@ -41,7 +43,8 @@ static int _argc;
 static void *_args[16];
 
 static int f_usb_init(void);
-static int f_usb_send(int c);
+static int f_usb_keyboard_test(void);
+
 static int f_usb_test(void);
 static int f_usb_test2(void);
 static int f_usb_test3(void);
@@ -73,9 +76,15 @@ static cmd c_tbl[] = {
     { .name = "usb_init", .fn = (func) f_usb_init,
         .help = "Initializes usb\n"
     },
-    { .name = "usb_send", .fn = (func) f_usb_send,
-        .help = "Send over usb\n"
+
+    { .name = "usb_test_keyboard", .fn = (func) f_usb_keyboard_test,
+        .help = "Test keys on keyboard\n"
+            "Before running test, open some textpad, e.g. gedit.\n"
+            "Run the test, and focus the textpad before countdown\n"
+            "reaches zero.\n"
     },
+
+
     { .name = "usb_test", .fn = (func) f_usb_test,
         .help = "Send over usb\n"
     },
@@ -152,6 +161,37 @@ static cmd c_tbl[] = {
     { .name = NULL, .fn = (func) 0, .help = NULL },
   };
 
+static int usb_kb_type(int mod, int code) {
+  usb_kb_report r;
+  memset(&r, 0, sizeof(r));
+  r.modifiers = mod;
+  r.keymap[0] = code;
+  USB_ARC_KB_tx(&r);
+  r.modifiers = 0;
+  r.keymap[0] = 0;
+  USB_ARC_KB_tx(&r);
+  return 0;
+}
+
+static int usb_kb_type_char(char c) {
+  enum kb_hid_code code = 0;
+  for (code = 0; code <= 0xbc; code++) {
+    const keymap *km = USB_KB_get_keymap(code);
+    if (km != NULL && km->keys != NULL) {
+      if (strchr(km->keys, c)) {
+        if (c >= 'A' && c <= 'Z') {
+          usb_kb_type(KB_MOD_LEFT_SHIFT, code);
+        } else {
+          usb_kb_type(KB_MOD_NONE, code);
+        }
+        return 1;
+      }
+    }
+  }
+
+  return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static int f_usb_init(void) {
@@ -159,14 +199,6 @@ static int f_usb_init(void) {
   return 0;
 }
 
-static int f_usb_send(int b) {
-  usb_kb_report r;
-  memset(&r, 0, sizeof(r));
-  r.modifiers = 0;
-  r.keymap[0] = b;
-  USB_ARC_KB_tx(&r);
-  return 0;
-}
 
 static int f_usb_test(void) {
   usb_kb_report r;
@@ -188,6 +220,42 @@ static int f_usb_test2(void) {
   r.dy = 8;
   r.wheel = 0;
   USB_ARC_MOUSE_tx(&r);
+  return 0;
+}
+
+static int f_usb_keyboard_test(void) {
+  print("This will generate a lot of keypresses.\n");
+  print("Please focus some window safe for garbled input.\n");
+  print("Pressing keys in...\n");
+  int i;
+  for (i = 7; i > 0; i--) {
+    print("  %i", i);
+    SYS_hardsleep_ms(1000);
+  }
+  print("\n");
+  enum kb_hid_code code = 0;
+  for (code = 0; code <= 0xbc; code++) {
+    const keymap *km = USB_KB_get_keymap(code);
+    if (km != NULL && km->keys != NULL) {
+
+      char hex_num[3];
+      sprint(hex_num, "%02x", code);
+      usb_kb_type_char(hex_num[0]);
+      usb_kb_type_char(hex_num[1]);
+      usb_kb_type_char(' ');
+      for (i = 0; i < strlen(km->name); i++) {
+        usb_kb_type_char(km->name[i]);
+      }
+      usb_kb_type_char(' ');
+      usb_kb_type(KB_MOD_NONE, code);
+      usb_kb_type_char(' ');
+      usb_kb_type(KB_MOD_NONE, KC_ENTER);
+    }
+
+  }
+  usb_kb_type_char('O');
+  usb_kb_type_char('K');
+  usb_kb_type(KB_MOD_NONE, KC_ENTER);
   return 0;
 }
 

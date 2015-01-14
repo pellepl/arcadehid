@@ -134,6 +134,7 @@ CFILES	+= usb_prop.c
 CFILES	+= usb_pwr.c
 CFILES	+= usb_regs.c
 CFILES	+= usb_sil.c
+CFILES  += usb_kb_codes.c
 
 # stm32 lib files
 SPATH	+= ${stmdriverdir}/src ${stmcmsisdir} ${stmcmsisdir}/startup/gcc_ride7

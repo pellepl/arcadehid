@@ -122,7 +122,13 @@ u8_t get_print_output(void);
 
 /** USB **/
 
-#define USB_KB_REPORT_KEYMAP_SIZE    16 /* 6 */
+#define USB_KB_REPORT_KEYMAP_SIZE     32 /* 6 */
+
+/** APP CONFIG **/
+
+#define APP_CONFIG_PINS               26
+#define APP_CONFIG_DEFS_PER_PIN       8
+
 
 /** DEBUG **/
 

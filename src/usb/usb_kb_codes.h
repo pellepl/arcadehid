@@ -10,7 +10,7 @@
 
 #include "system.h"
 
-#define MOD_BIT(c) (1 << ((c) & 0x7))
+#define MOD_BIT(c) (1 << ((c-MOD_LCTRL) & 0x7))
 
 #define KB_MOD_NONE           0
 #define KB_MOD_LEFT_CTRL      (1<<0)
@@ -215,16 +215,17 @@ enum kb_hid_code {
     KC_MEDIA_FAST_FORWARD,
     KC_MEDIA_REWIND, // 0xbc
 
-    MOD_LCTRL = 0xe0, // 0xe0
+    MOD_LCTRL,
     MOD_LSHIFT,
     MOD_LALT,
-    MOD_LGUI,
+    MOD_LGUI,      // 0xc0
     MOD_RCTRL,
     MOD_RSHIFT,
     MOD_RALT,
     MOD_RGUI,
-};
 
+    _KB_HID_CODE_MAX //0xc5
+};
 
 typedef struct {
   const char *name;

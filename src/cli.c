@@ -21,6 +21,8 @@
 
 #include "usb_kb_codes.h"
 
+#include "def_config_parser.h"
+
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
 
@@ -81,7 +83,7 @@ static cmd c_tbl[] = {
         .help = "Test keys on keyboard\n"
             "Before running test, open some textpad, e.g. gedit.\n"
             "Run the test, and focus the textpad before countdown\n"
-            "reaches zero.\n"
+            "reaches zero.\nsh "
     },
 
 
@@ -529,6 +531,21 @@ static int f_memfind(int hex) {
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static void CLI_parse(u32_t len, u8_t *buf) {
+  if (strcmpbegin("def ", (char*)buf)==0) {
+    if (buf[len-1] == '\r' || buf[len-1] == '\n') {
+      buf[len-1] = 0;
+      len--;
+    }
+    def_config pindef;
+    bool ok = def_config_parse(&pindef, (char*)&buf[4], len-4);
+    if (ok) {
+      def_config_print(&pindef);
+      print("OK\n");
+    }
+    print(CLI_PROMPT);
+    return;
+  }
+
   cursor cursor;
   strarg_init(&cursor, (char*) buf, len);
   strarg arg;

@@ -192,6 +192,15 @@ const keymap keycode_map[] = {
     {.name="WWW_FAVORITES", .keys=NULL},
     {.name="MEDIA_FAST_FORWARD", .keys=NULL},
     {.name="MEDIA_REWIND", .keys=NULL}, // 0xbc
+
+    {.name="LEFT_CTRL", .keys=NULL}, // 0xbd
+    {.name="LEFT_SHIFT", .keys=NULL}, // 0xbe
+    {.name="LEFT_ALT", .keys=NULL}, // 0xbf
+    {.name="LEFT_GUI", .keys=NULL}, // 0xc0
+    {.name="RIGHT_CTRL", .keys=NULL}, // 0xc1
+    {.name="RIGHT_SHIFT", .keys=NULL}, // 0xc2
+    {.name="RIGHT_ALT", .keys=NULL}, // 0xc3
+    {.name="RIGHT_GUI", .keys=NULL}, // 0xc4
 };
 
 const keymap *USB_KB_get_keymap(enum kb_hid_code code) {

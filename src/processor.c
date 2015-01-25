@@ -8,6 +8,7 @@
 #include "processor.h"
 #include "system.h"
 #include "gpio.h"
+#include "gpio_map.h"
 
 static void RCC_config() {
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
@@ -77,16 +78,6 @@ static void NVIC_config(void)
   NVIC_EnableIRQ(USART2_IRQn);
 #endif
 
-  // extis
-  NVIC_SetPriority(EXTI0_IRQn, NVIC_EncodePriority(prioGrp, 1, 0)); // radio data ready
-  NVIC_SetPriority(EXTI1_IRQn, NVIC_EncodePriority(prioGrp, 1, 0)); // radio carrier detect
-  NVIC_SetPriority(EXTI2_IRQn, NVIC_EncodePriority(prioGrp, 1, 0));
-  NVIC_SetPriority(EXTI3_IRQn, NVIC_EncodePriority(prioGrp, 1, 0));
-  NVIC_SetPriority(EXTI4_IRQn, NVIC_EncodePriority(prioGrp, 1, 0));
-
-  NVIC_SetPriority(EXTI9_5_IRQn, NVIC_EncodePriority(prioGrp, 0, 1));   // cvideo vsync
-  NVIC_SetPriority(EXTI15_10_IRQn, NVIC_EncodePriority(prioGrp, 0, 1)); // cvideo hsync
-
   // usb
   NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, NVIC_EncodePriority(prioGrp, 3, 0));
   NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
@@ -125,6 +116,17 @@ static void TIM_config() {
   TIM_Cmd(STM32_SYSTEM_TIMER, ENABLE);
 }
 
+static void GPIO_config() {
+  const gpio_pin_map *led = GPIO_MAP_get_led_map();
+  gpio_config_out(led->port, led->pin, CLK_50MHZ, PUSHPULL, NOPULL);
+
+  const gpio_pin_map *in = GPIO_MAP_get_pin_map();
+  int i;
+  for (i = 0; i < APP_CONFIG_PINS; i++) {
+    gpio_config_in(in[i].port, in[i].pin, CLK_2MHZ);
+  }
+}
+
 // ifc
 
 void PROC_base_init() {
@@ -137,14 +139,10 @@ void PROC_periph_init() {
   gpio_init();
 
 #ifdef CONFIG_HY_TEST_BOARD
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_13;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-  GPIO_Init(GPIOC, &GPIO_InitStructure);
+  gpio_config_out(PORTC, PIN13, CLK_50MHZ, PUSHPULL, NOPULL);
 #endif
 
+  GPIO_config();
   UART2_config();
   TIM_config();
 }

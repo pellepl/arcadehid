@@ -15,6 +15,9 @@ ErrorStatus HSEStartUpStatus;
 volatile uint8_t kb_tx_complete = 1;
 volatile uint8_t mouse_tx_complete = 1;
 
+usb_kb_report_ready_cb_f kb_report_ready_cb = NULL;
+usb_mouse_report_ready_cb_f mouse_report_ready_cb = NULL;
+
 uint8_t kb_led_state = 0;
 
 #ifdef CONFIG_ARCHID_VCD
@@ -38,6 +41,22 @@ void USB_Cable_Config(FunctionalState NewState) {
     GPIO_SetBits(GPIOC, GPIO_Pin_13);
   }
 #endif
+}
+
+void USB_ARC_set_kb_callback(usb_kb_report_ready_cb_f cb) {
+  kb_report_ready_cb = cb;
+}
+
+void USB_ARC_set_mouse_callback(usb_mouse_report_ready_cb_f cb) {
+  mouse_report_ready_cb = cb;
+}
+
+bool USB_ARC_KB_can_tx(void) {
+  return kb_tx_complete != 0;
+}
+
+bool USB_ARC_MOUSE_can_tx(void) {
+  return mouse_tx_complete != 0;
 }
 
 void USB_ARC_KB_tx(usb_kb_report *report)

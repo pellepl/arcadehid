@@ -21,8 +21,6 @@ typedef enum {
 typedef enum {
   HID_ID_MOUSE_X = 0,
   HID_ID_MOUSE_Y,
-  HID_ID_MOUSE_X_ACC,
-  HID_ID_MOUSE_Y_ACC,
   HID_ID_MOUSE_BUTTONS,
   HID_ID_MOUSE_WHEEL,
 } hid_id_mouse;
@@ -40,7 +38,10 @@ typedef struct {
     } kb;
     struct {
       hid_id_type type : 2;
-      hid_id_mouse mouse_type : 6;
+      hid_id_mouse mouse_type : 2;
+      u8_t mouse_sign : 1;
+      u8_t mouse_acc : 1;
+      u8_t mouse_res : 2;
       u8_t mouse_data : 8;
     } mouse;
   };

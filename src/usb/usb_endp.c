@@ -50,6 +50,7 @@ void EP1_IN_Callback(void)
   /* Set the transfer complete token to inform upper layer that the current 
   transfer has been complete */
   kb_tx_complete = 1;
+  if (kb_report_ready_cb) kb_report_ready_cb();
 }
 
 void EP2_IN_Callback(void)
@@ -57,6 +58,7 @@ void EP2_IN_Callback(void)
   /* Set the transfer complete token to inform upper layer that the current
   transfer has been complete */
   mouse_tx_complete = 1;
+  if (mouse_report_ready_cb) mouse_report_ready_cb();
 }
 
 #ifdef CONFIG_ARCHID_VCD

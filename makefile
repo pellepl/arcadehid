@@ -118,6 +118,7 @@ CFILES 		+= cli.c
 CFILES 		+= timer.c
 CFILES 		+= app.c
 CFILES		+= def_config_parser.c
+CFILES		+= gpio_map.c
 
 # usb files
 CPATH	+= ${sourcedir}/usb

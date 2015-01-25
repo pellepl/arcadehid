@@ -3,6 +3,7 @@
 
 #include "system.h"
 #include "usb_type.h"
+#include "usb_arcade.h"
 
 #ifdef CONFIG_ARCHID_VCD
 #include "ringbuf.h"
@@ -20,6 +21,8 @@ void Handle_USBAsynchXfer(void);
 
 extern volatile uint8_t kb_tx_complete;
 extern volatile uint8_t mouse_tx_complete;
+extern usb_kb_report_ready_cb_f kb_report_ready_cb;
+extern usb_mouse_report_ready_cb_f mouse_report_ready_cb;
 
 extern uint8_t kb_led_state;
 

@@ -241,31 +241,31 @@ static bool lex(const char *str, u16_t len) {
 //
 
 static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t lex_sym_cnt) {
-  int i;
+  int sym_ix;
 
-  u8_t sym_ix = 0;
+  u8_t def_ix = 0;
 
   memset(pindef, 0, sizeof(def_config));
 
   // check common syntax
   int tern_ix = -1;
   int tern_opt_ix = -1;
-  for (i = 0; i < lex_sym_cnt; i++) {
-    lex_type_sym *sym = &syms[i];
+  for (sym_ix = 0; sym_ix < lex_sym_cnt; sym_ix++) {
+    lex_type_sym *sym = &syms[sym_ix];
     switch (sym->type) {
     case LEX_DEF:
       break;
     case LEX_NUM:
-      if (i == 0) {
+      if (sym_ix == 0) {
         print_index_indicator(str, sym->offs_start);
         KEYPARSERR(
             "Syntax error: unexpected numerator ");
         print_lex_sym(sym, str);
         return FALSE;
-      } else if (syms[i - 1].type != LEX_DEF) {
-        print_index_indicator(str, syms[i-1].offs_start);
+      } else if (syms[sym_ix - 1].type != LEX_DEF) {
+        print_index_indicator(str, syms[sym_ix-1].offs_start);
         KEYPARSERR("Syntax error: numerator must follow a definition, found ");
-        print_lex_sym(&syms[i - 1], str);
+        print_lex_sym(&syms[sym_ix - 1], str);
         return FALSE;
       }
       break;
@@ -280,14 +280,14 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
             "Syntax error: ternary '%c' @ index %i already defined @ index %i\n", tern_chars[0], sym->offs_start, syms[tern_ix].offs_start);
         return FALSE;
       }
-      if (i > 0 && syms[i - 1].type != LEX_PIN) {
+      if (sym_ix > 0 && syms[sym_ix - 1].type != LEX_PIN) {
         print_index_indicator(str, sym->offs_start);
         KEYPARSERR(
             "Syntax error: ternary '%c' @ index %i must follow a pin definition, found ", tern_chars[0], sym->offs_start);
-        print_lex_sym(&syms[i - 1], str);
+        print_lex_sym(&syms[sym_ix - 1], str);
         return FALSE;
       }
-      tern_ix = i;
+      tern_ix = sym_ix;
       break;
     case LEX_TERN_OPT:
       if (tern_opt_ix >= 0) {
@@ -296,7 +296,7 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
             "Syntax error: ternary option '%c' @ index %i already defined @ index %i\n", tern_chars[1], sym->offs_start, syms[tern_opt_ix].offs_start);
         return FALSE;
       }
-      tern_opt_ix = i;
+      tern_opt_ix = sym_ix;
       break;
     default:
       print_index_indicator(str, sym->offs_start);
@@ -402,31 +402,53 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
 
   // build
 
-  sym_ix = 0;
-  i = pindef->tern_pin > 0 ? 4 : 2;
-  while (i < lex_sym_cnt) {
-    lex_type_sym *sym = &syms[i];
+  def_ix = 0;
+  sym_ix = pindef->tern_pin > 0 ? 4 : 2;
+  pindef->tern_splice = 0;
+  while (sym_ix < lex_sym_cnt) {
+    lex_type_sym *sym = &syms[sym_ix];
     if (sym->type == LEX_DEF) {
       hid_id h_id;
       lookup_def(str, sym, &h_id);
-      pindef->id[sym_ix].type = h_id.type;
-      pindef->id[sym_ix].raw = h_id.raw;
-      if (pindef->id[sym_ix].type == HID_ID_TYPE_NONE) {
+      pindef->id[def_ix].type = h_id.type;
+      pindef->id[def_ix].raw = h_id.raw;
+      if (pindef->id[def_ix].type == HID_ID_TYPE_NONE) {
         print_index_indicator(str, sym->offs_start);
         KEYPARSERR("Syntax error: unknown definition ");
         print_lex_sym(sym, str);
         return FALSE;
       }
-      sym_ix++;
-      if (sym_ix > APP_CONFIG_DEFS_PER_PIN) {
-        print_index_indicator(str, syms[sym_ix + 1].offs_start);
+      int i;
+      for (i = pindef->tern_splice; i < def_ix; i++) {
+        if (pindef->id[i].type == h_id.type &&
+            pindef->id[i].raw == h_id.raw) {
+          print_index_indicator(str, sym->offs_start);
+          KEYPARSERR("Error: identical definition ");
+          print_lex_sym(sym, str);
+          return FALSE;
+        }
+      }
+      def_ix++;
+      if (def_ix > APP_CONFIG_DEFS_PER_PIN) {
+        print_index_indicator(str, syms[def_ix + 1].offs_start);
         KEYPARSERR("Error: definition overflow\n");
         return FALSE;
       }
+
     } else if (sym->type == LEX_NUM) {
-      pindef->id[sym_ix - 1].raw |= 0x01; // todo handle
+      pindef->id[def_ix - 1].raw |= 0x01; // todo handle
+      int i;
+      for (i = pindef->tern_splice; i < def_ix-1; i++) {
+        if (pindef->id[i].type == pindef->id[def_ix-1].type &&
+            pindef->id[i].raw == pindef->id[def_ix-1].raw) {
+          print_index_indicator(str, sym->offs_start);
+          KEYPARSERR("Error: identical definition ");
+          print_lex_sym(sym, str);
+          return FALSE;
+        }
+      }
     } else if (sym->type == LEX_TERN_OPT) {
-      pindef->tern_splice = sym_ix;
+      pindef->tern_splice = def_ix;
     } else {
       print_index_indicator(str, sym->offs_start);
       KEYPARSERR("Syntax error: unexpected symbol ");
@@ -434,7 +456,7 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
       return FALSE;
     }
 
-    i++;
+    sym_ix++;
   }
 
   return TRUE;

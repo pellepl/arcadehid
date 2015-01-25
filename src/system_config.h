@@ -126,7 +126,11 @@ u8_t get_print_output(void);
 
 /** APP CONFIG **/
 
+#ifdef CONFIG_HY_TEST_BOARD
+#define APP_CONFIG_PINS               4
+#else
 #define APP_CONFIG_PINS               26
+#endif
 #define APP_CONFIG_DEFS_PER_PIN       8
 
 

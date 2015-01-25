@@ -541,6 +541,7 @@ static void CLI_parse(u32_t len, u8_t *buf) {
     if (ok) {
       def_config_print(&pindef);
       print("OK\n");
+      APP_define_pin(&pindef);
     }
     print(CLI_PROMPT);
     return;

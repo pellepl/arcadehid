@@ -33,9 +33,16 @@ typedef struct {
   };
 } usb_mouse_report;
 
+typedef void (*usb_kb_report_ready_cb_f)(void);
+typedef void (*usb_mouse_report_ready_cb_f)(void);
 
+bool USB_ARC_KB_can_tx(void);
+bool USB_ARC_MOUSE_can_tx(void);
 void USB_ARC_KB_tx(usb_kb_report *report);
 void USB_ARC_MOUSE_tx(usb_mouse_report *report);
+void USB_ARC_set_kb_callback(usb_kb_report_ready_cb_f cb);
+void USB_ARC_set_mouse_callback(usb_mouse_report_ready_cb_f cb);
+
 void USB_ARC_init(void);
 
 #endif /* USB_ARC_H_ */

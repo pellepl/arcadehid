@@ -260,7 +260,7 @@ void APP_timer(void) {
         app.irq_debounce_map[pin].same_state = 0;
       }
 
-      if (app.irq_debounce_map[pin].pin_active != (app.pin_state[pin] != PIN_INACTIVE)) {
+      if (app.irq_cur_pin_active[pin] != (app.pin_state[pin] != PIN_INACTIVE)) {
         any_changes = TRUE;
       }
     }

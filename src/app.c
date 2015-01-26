@@ -44,16 +44,15 @@ static struct {
   // gpio states
   volatile bool dirty_gpio;
   volatile bool lock_gpio_sampling;
+  pin_debounce irq_debounce_map[APP_CONFIG_PINS];
+  volatile bool irq_cur_pin_active[APP_CONFIG_PINS];
 
-  pin_debounce debounce_map[APP_CONFIG_PINS];
-
-  volatile bool cur_pin_active[APP_CONFIG_PINS];
+  app_pin_state pin_state[APP_CONFIG_PINS];
+  app_pin_state pin_state_prev[APP_CONFIG_PINS];
 
   // keyboard states
   usb_kb_report last_usb_keyboard_report;
   volatile bool dirty_kb;
-  app_pin_state kb_pin_state[APP_CONFIG_PINS];
-  app_pin_state kb_pin_state_prev[APP_CONFIG_PINS];
 
   // mouse states
   usb_mouse_report last_usb_mouse_report;
@@ -74,12 +73,12 @@ void app_send_kb_report(void) {
   // for each pin..
   for (pin = 0; pin < APP_CONFIG_PINS && report_ix < USB_KB_REPORT_KEYMAP_SIZE; pin++) {
     // .. which is not inactive ..
-    if (app.kb_pin_state[pin] == PIN_INACTIVE) continue;
+    if (app.pin_state[pin] == PIN_INACTIVE) continue;
 
     // .. find out definitions group depending on ternary or not ..
     int def_start, def_end;
     if (app.pin_config[pin].tern_pin) {
-      if (app.kb_pin_state[pin] == PIN_ACTIVE_TERN) {
+      if (app.pin_state[pin] == PIN_ACTIVE_TERN) {
         def_start = app.pin_config[pin].tern_splice;
         def_end = APP_CONFIG_DEFS_PER_PIN;
       } else {
@@ -121,8 +120,6 @@ void app_send_kb_report(void) {
   // send keystrokes
   USB_ARC_KB_tx(&report);
 
-  // update app states
-  memcpy(&app.kb_pin_state_prev[0], &app.kb_pin_state[0], sizeof(app.kb_pin_state));
   app.dirty_kb = FALSE;
 }
 
@@ -133,16 +130,16 @@ static void app_trigger_pin(u8_t pin, bool active) {
   DBG(D_APP, D_INFO, "pin %i %s\n", (pin+1), active ? "!":"-");
   if (active) {
     if (app.pin_config[pin].tern_pin > 0) {
-      if (app.cur_pin_active[app.pin_config[pin].tern_pin-1]) {
-        app.kb_pin_state[pin] = PIN_ACTIVE_TERN;
+      if (app.irq_cur_pin_active[app.pin_config[pin].tern_pin-1]) {
+        app.pin_state[pin] = PIN_ACTIVE_TERN;
       } else {
-        app.kb_pin_state[pin] = PIN_ACTIVE;
+        app.pin_state[pin] = PIN_ACTIVE;
       }
     } else {
-      app.kb_pin_state[pin] = PIN_ACTIVE;
+      app.pin_state[pin] = PIN_ACTIVE;
     }
   } else {
-    app.kb_pin_state[pin] = PIN_INACTIVE;
+    app.pin_state[pin] = PIN_INACTIVE;
   }
 }
 
@@ -154,9 +151,9 @@ static void app_pins_update(void) {
 
   // trigger changed pins
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-    if (app.kb_pin_state[pin] == PIN_INACTIVE && app.cur_pin_active[pin]) {
+    if (app.pin_state[pin] == PIN_INACTIVE && app.irq_cur_pin_active[pin]) {
       app_trigger_pin(pin, TRUE);
-    } else if (app.kb_pin_state[pin] != PIN_INACTIVE && !app.cur_pin_active[pin]) {
+    } else if (app.pin_state[pin] != PIN_INACTIVE && !app.irq_cur_pin_active[pin]) {
       app_trigger_pin(pin, FALSE);
     }
   }
@@ -166,7 +163,7 @@ static void app_pins_update(void) {
 
   if (!app.dirty_kb) {
     for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-      if (app.kb_pin_state[pin] != app.kb_pin_state_prev[pin]) {
+      if (app.pin_state[pin] != app.pin_state_prev[pin]) {
         app.dirty_kb = TRUE;
         break;
       }
@@ -177,6 +174,9 @@ static void app_pins_update(void) {
     DBG(D_APP, D_DEBUG, "send kb report from pins_update\n");
     app_send_kb_report();
   }
+
+  // update app states
+  memcpy(&app.pin_state_prev[0], &app.pin_state[0], sizeof(app.pin_state));
 
   app.dirty_gpio = FALSE;
 }
@@ -230,9 +230,9 @@ void APP_init(void) {
 
 void APP_define_pin(def_config *cfg) {
   memcpy(&app.pin_config[cfg->pin - 1], cfg, sizeof(def_config));
-  app.kb_pin_state[cfg->pin - 1] = PIN_INACTIVE;
-  app.kb_pin_state_prev[cfg->pin - 1] = PIN_INACTIVE;
-  app.cur_pin_active[cfg->pin - 1] = FALSE;
+  app.pin_state[cfg->pin - 1] = PIN_INACTIVE;
+  app.pin_state_prev[cfg->pin - 1] = PIN_INACTIVE;
+  app.irq_cur_pin_active[cfg->pin - 1] = FALSE;
 }
 
 void APP_timer(void) {
@@ -246,21 +246,21 @@ void APP_timer(void) {
     for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
       bool pin_active = gpio_get(map[pin].port, map[pin].pin) == 0;
 
-      if (pin_active == app.debounce_map[pin].pin_active) {
-        if (app.debounce_map[pin].same_state < app.debounce_valid_cycles) {
-          app.debounce_map[pin].same_state++;
+      if (pin_active == app.irq_debounce_map[pin].pin_active) {
+        if (app.irq_debounce_map[pin].same_state < app.debounce_valid_cycles) {
+          app.irq_debounce_map[pin].same_state++;
         } else {
-          if (app.cur_pin_active[pin] != pin_active) {
+          if (app.irq_cur_pin_active[pin] != pin_active) {
             // pin same state given nbr of cycles, now triggered
-            app.cur_pin_active[pin] = pin_active;
+            app.irq_cur_pin_active[pin] = pin_active;
           }
         }
       } else {
-        app.debounce_map[pin].pin_active = pin_active;
-        app.debounce_map[pin].same_state = 0;
+        app.irq_debounce_map[pin].pin_active = pin_active;
+        app.irq_debounce_map[pin].same_state = 0;
       }
 
-      if (app.debounce_map[pin].pin_active != (app.kb_pin_state[pin] != PIN_INACTIVE)) {
+      if (app.irq_debounce_map[pin].pin_active != (app.pin_state[pin] != PIN_INACTIVE)) {
         any_changes = TRUE;
       }
     }

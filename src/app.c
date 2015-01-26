@@ -43,19 +43,17 @@ static struct {
 
   // gpio states
   volatile bool dirty_gpio;
+  volatile bool lock_gpio_sampling;
 
   pin_debounce debounce_map[APP_CONFIG_PINS];
 
   volatile bool cur_pin_active[APP_CONFIG_PINS];
-  bool last_pin_active[APP_CONFIG_PINS];
 
   // keyboard states
   usb_kb_report last_usb_keyboard_report;
   volatile bool dirty_kb;
-  app_pin_state *kb_pin_state;
-  app_pin_state *kb_pin_state_prev;
-  app_pin_state kb_pin_state_1[APP_CONFIG_PINS];
-  app_pin_state kb_pin_state_2[APP_CONFIG_PINS];
+  app_pin_state kb_pin_state[APP_CONFIG_PINS];
+  app_pin_state kb_pin_state_prev[APP_CONFIG_PINS];
 
   // mouse states
   usb_mouse_report last_usb_mouse_report;
@@ -101,15 +99,20 @@ void app_send_kb_report(void) {
       if (report_ix >= USB_KB_REPORT_KEYMAP_SIZE) break;
       if (app.pin_config[pin].id[def].type == HID_ID_TYPE_KEYBOARD) {
         enum kb_hid_code kb_code = app.pin_config[pin].id[def].kb.kb_code;
-        int i = 0;
-        // .. and add all definitions that are not already int the report
-        while (i <= report_ix && report.keymap[i++] != kb_code);
-        if (i > report_ix) {
-          report.keymap[report_ix] = kb_code;
-          DBG(D_APP, D_DEBUG, "add kb_code %02x to report ix %i\n", kb_code, report_ix);
-          report_ix++;
+        if (kb_code >= MOD_LCTRL) {
+          // shift, ctrl, alt or gui
+          report.modifiers |= MOD_BIT(kb_code);
         } else {
-          DBG(D_APP, D_DEBUG, "kb_code %02x already added to report ix %i\n", kb_code, i-1);
+          int i = 0;
+          // .. and add all definitions that are not already in the report
+          while (i <= report_ix && report.keymap[i++] != kb_code);
+          if (i > report_ix) {
+            report.keymap[report_ix] = kb_code;
+            DBG(D_APP, D_DEBUG, "add kb_code %02x to report ix %i\n", kb_code, report_ix);
+            report_ix++;
+          } else {
+            DBG(D_APP, D_DEBUG, "kb_code %02x already added to report ix %i\n", kb_code, i-1);
+          }
         }
       }
     } // for each definition in pin
@@ -119,42 +122,47 @@ void app_send_kb_report(void) {
   USB_ARC_KB_tx(&report);
 
   // update app states
-  app_pin_state *tmp = app.kb_pin_state;
-  app.kb_pin_state = app.kb_pin_state_prev;
-  app.kb_pin_state_prev = tmp;
+  memcpy(&app.kb_pin_state_prev[0], &app.kb_pin_state[0], sizeof(app.kb_pin_state));
   app.dirty_kb = FALSE;
 }
 
 
 // lowlevel pin handling
 
-static void app_trigger_pin(u8_t i, bool active) {
-  DBG(D_APP, D_INFO, "pin %i %s\n", (i+1), active ? "!":"-");
+static void app_trigger_pin(u8_t pin, bool active) {
+  DBG(D_APP, D_INFO, "pin %i %s\n", (pin+1), active ? "!":"-");
   if (active) {
-    if (app.pin_config[i].tern_pin > 0) {
-      if (app.cur_pin_active[app.pin_config[i].tern_pin-1]) {
-        app.kb_pin_state[i] = PIN_ACTIVE_TERN;
+    if (app.pin_config[pin].tern_pin > 0) {
+      if (app.cur_pin_active[app.pin_config[pin].tern_pin-1]) {
+        app.kb_pin_state[pin] = PIN_ACTIVE_TERN;
       } else {
-        app.kb_pin_state[i] = PIN_ACTIVE;
+        app.kb_pin_state[pin] = PIN_ACTIVE;
       }
     } else {
-      app.kb_pin_state[i] = PIN_ACTIVE;
+      app.kb_pin_state[pin] = PIN_ACTIVE;
     }
   } else {
-    app.kb_pin_state[i] = PIN_INACTIVE;
+    app.kb_pin_state[pin] = PIN_INACTIVE;
   }
 }
 
 static void app_pins_update(void) {
   int pin;
+
+  app.lock_gpio_sampling = TRUE;
+  __DMB();
+
   // trigger changed pins
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-    if (!app.last_pin_active[pin] && app.cur_pin_active[pin]) {
+    if (app.kb_pin_state[pin] == PIN_INACTIVE && app.cur_pin_active[pin]) {
       app_trigger_pin(pin, TRUE);
-    } else if (app.last_pin_active[pin] && !app.cur_pin_active[pin]) {
+    } else if (app.kb_pin_state[pin] != PIN_INACTIVE && !app.cur_pin_active[pin]) {
       app_trigger_pin(pin, FALSE);
     }
   }
+
+  app.lock_gpio_sampling = FALSE;
+  __DMB();
 
   if (!app.dirty_kb) {
     for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
@@ -170,8 +178,6 @@ static void app_pins_update(void) {
     app_send_kb_report();
   }
 
-  // update app state
-  memcpy(&app.last_pin_active[0], (bool * )&app.cur_pin_active[0], sizeof(app.cur_pin_active));
   app.dirty_gpio = FALSE;
 }
 
@@ -216,8 +222,6 @@ void APP_init(void) {
   // common
   memset(&app, 0, sizeof(app));
   app.debounce_valid_cycles = 4;
-  app.kb_pin_state = app.kb_pin_state_1;
-  app.kb_pin_state_prev = app.kb_pin_state_2;
 
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
@@ -229,44 +233,45 @@ void APP_define_pin(def_config *cfg) {
   app.kb_pin_state[cfg->pin - 1] = PIN_INACTIVE;
   app.kb_pin_state_prev[cfg->pin - 1] = PIN_INACTIVE;
   app.cur_pin_active[cfg->pin - 1] = FALSE;
-  app.last_pin_active[cfg->pin - 1] = FALSE;
 }
 
 void APP_timer(void) {
   // input read
-  int pin;
-  const gpio_pin_map *map = GPIO_MAP_get_pin_map();
+  if (!app.lock_gpio_sampling) {
+    int pin;
+    const gpio_pin_map *map = GPIO_MAP_get_pin_map();
 
-  // debouncer
-  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-    bool pin_active = gpio_get(map[pin].port, map[pin].pin) == 0;
-    if (pin_active == app.debounce_map[pin].pin_active) {
-      if (app.debounce_map[pin].same_state < app.debounce_valid_cycles) {
-        app.debounce_map[pin].same_state++;
+    // debouncer
+    bool any_changes = FALSE;
+    for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
+      bool pin_active = gpio_get(map[pin].port, map[pin].pin) == 0;
+
+      if (pin_active == app.debounce_map[pin].pin_active) {
+        if (app.debounce_map[pin].same_state < app.debounce_valid_cycles) {
+          app.debounce_map[pin].same_state++;
+        } else {
+          if (app.cur_pin_active[pin] != pin_active) {
+            // pin same state given nbr of cycles, now triggered
+            app.cur_pin_active[pin] = pin_active;
+          }
+        }
       } else {
-        // pin same state given nbr of cycles, now triggered
-        app.cur_pin_active[pin] = pin_active;
+        app.debounce_map[pin].pin_active = pin_active;
+        app.debounce_map[pin].same_state = 0;
       }
-    } else {
-      app.debounce_map[pin].pin_active = pin_active;
-      app.debounce_map[pin].same_state = 0;
-    }
-  }
 
-  // find if anything changed
-  bool any_changes = FALSE;
-  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-    if (app.last_pin_active[pin] != app.cur_pin_active[pin]) {
-      any_changes = TRUE;
+      if (app.debounce_map[pin].pin_active != (app.kb_pin_state[pin] != PIN_INACTIVE)) {
+        any_changes = TRUE;
+      }
     }
-  }
 
-  // post change
-  if (!app.dirty_gpio && any_changes) {
-    app.dirty_gpio = TRUE;
-    task *t = TASK_create(app_pins_dirty_msg, 0);
-    ASSERT(t);
-    TASK_run(t, 0, NULL);
+    // post change
+    if (!app.dirty_gpio && any_changes) {
+      app.dirty_gpio = TRUE;
+      task *t = TASK_create(app_pins_dirty_msg, 0);
+      ASSERT(t);
+      TASK_run(t, 0, NULL);
+    }
   }
 
   // led blink

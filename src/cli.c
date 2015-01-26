@@ -19,9 +19,8 @@
 
 #include "linker_symaccess.h"
 
-#include "usb_kb_codes.h"
-
 #include "def_config_parser.h"
+#include "usb/usb_arc_codes.h"
 
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
@@ -178,7 +177,7 @@ static int usb_kb_type(int mod, int code) {
 static int usb_kb_type_char(char c) {
   enum kb_hid_code code = 0;
   for (code = 0; code <= 0xbc; code++) {
-    const keymap *km = USB_KB_get_keymap(code);
+    const keymap *km = USB_ARC_get_keymap(code);
     if (km != NULL && km->keys != NULL) {
       if (strchr(km->keys, c)) {
         if (c >= 'A' && c <= 'Z') {
@@ -237,7 +236,7 @@ static int f_usb_keyboard_test(void) {
   print("\n");
   enum kb_hid_code code = 0;
   for (code = 0; code <= 0xbc; code++) {
-    const keymap *km = USB_KB_get_keymap(code);
+    const keymap *km = USB_ARC_get_keymap(code);
     if (km != NULL && km->keys != NULL) {
 
       char hex_num[3];

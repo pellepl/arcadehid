@@ -1,12 +1,12 @@
 /*
- * usb_kb_codes.h
+ * usb_arc_codes.h
  *
  *  Created on: Dec 28, 2014
  *      Author: petera
  */
 
-#ifndef USB_KB_CODES_H_
-#define USB_KB_CODES_H_
+#ifndef USB_ARC_CODES_H_
+#define USB_ARC_CODES_H_
 
 #include "system.h"
 
@@ -227,11 +227,24 @@ enum kb_hid_code {
     _KB_HID_CODE_MAX //0xc5
 };
 
+enum mouse_code {
+  MOUSE_X = 0,
+  MOUSE_Y,
+  MOUSE_BUTTON1,
+  MOUSE_BUTTON2,
+  MOUSE_BUTTON3,
+  MOUSE_WHEEL,
+
+  _MOUSE_CODE_MAX
+};
+
 typedef struct {
   const char *name;
   const char *keys;
+  const bool numerator;
 } keymap;
 
-const keymap *USB_KB_get_keymap(enum kb_hid_code code);
+const keymap *USB_ARC_get_keymap(enum kb_hid_code code);
+const keymap *USB_ARC_get_mousemap(enum mouse_code code);
 
-#endif /* USB_KB_CODES_H_ */
+#endif /* USB_ARC_CODES_H_ */

@@ -6,7 +6,8 @@
  */
 
 #include "def_config_parser.h"
-#include "usb_kb_codes.h"
+
+#include "usb/usb_arc_codes.h"
 
 #define MAX_LEX_SYM_LEN   (4+APP_CONFIG_DEFS_PER_PIN*2+1)
 
@@ -136,20 +137,32 @@ static int sym_strcmp(const char *str, const char *sym_str, lex_type_sym *sym) {
   return to_lower(c1) - to_lower(c2);
 }
 
-static void lookup_def(const char *str, lex_type_sym *sym, hid_id *h_id) {
+static void lookup_def(const char *str, lex_type_sym *sym, hid_id *h_id, bool *numerator) {
   // test keyboard definitions
   enum kb_hid_code kb_code;
   for (kb_code = 0; kb_code < _KB_HID_CODE_MAX; kb_code++) {
-    const keymap *kb_map = USB_KB_get_keymap(kb_code);
+    const keymap *kb_map = USB_ARC_get_keymap(kb_code);
     if (kb_map->name == NULL) continue;
     if (sym_strcmp(kb_map->name, str, sym) == 0) {
       h_id->type = HID_ID_TYPE_KEYBOARD;
       h_id->kb.kb_code = kb_code;
+      *numerator = kb_map->numerator;
       return;
     }
   }
 
-  // todo test mouse definitions
+  // test mouse definitions
+  enum mouse_code m_code;
+  for (m_code = 0; m_code < _MOUSE_CODE_MAX; m_code++) {
+    const keymap *m_map = USB_ARC_get_mousemap(m_code);
+    if (m_map->name == NULL) continue;
+    if (sym_strcmp(m_map->name, str, sym) == 0) {
+      h_id->type = HID_ID_TYPE_MOUSE;
+      h_id->mouse.mouse_code = m_code;
+      *numerator = m_map->numerator;
+      return;
+    }
+  }
 
   h_id->type = HID_ID_TYPE_NONE;
 }
@@ -232,6 +245,11 @@ static bool lex(const char *str, u16_t len) {
     }
   }
   return TRUE;
+}
+
+static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
+  // todo
+  return FALSE;
 }
 
 // syntax format:
@@ -405,11 +423,20 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
   def_ix = 0;
   sym_ix = pindef->tern_pin > 0 ? 4 : 2;
   pindef->tern_splice = 0;
+  bool numerator = FALSE;
+  bool prev_numerator = FALSE;
   while (sym_ix < lex_sym_cnt) {
+    numerator = FALSE;
     lex_type_sym *sym = &syms[sym_ix];
+    if (prev_numerator && sym->type != LEX_NUM) {
+      print_index_indicator(str, sym->offs_start);
+      KEYPARSERR("Syntax error: expected numerator instead of ");
+      print_lex_sym(sym, str);
+      return FALSE;
+    }
     if (sym->type == LEX_DEF) {
       hid_id h_id;
-      lookup_def(str, sym, &h_id);
+      lookup_def(str, sym, &h_id, &numerator);
       pindef->id[def_ix].type = h_id.type;
       pindef->id[def_ix].raw = h_id.raw;
       if (pindef->id[def_ix].type == HID_ID_TYPE_NONE) {
@@ -436,7 +463,20 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
       }
 
     } else if (sym->type == LEX_NUM) {
-      pindef->id[def_ix - 1].raw |= 0x01; // todo handle
+      if (prev_numerator) {
+        if (!parse_numerator(sym, str, &pindef->id[def_ix-1])) {
+          print_index_indicator(str, sym->offs_start);
+          KEYPARSERR("Syntax error: could not parse numerator ");
+          print_lex_sym(sym, str);
+          return FALSE;
+        }
+      } else {
+        print_index_indicator(str, sym->offs_start);
+        KEYPARSERR("Syntax error: unexpected numerator ");
+        print_lex_sym(sym, str);
+        return FALSE;
+      }
+
       int i;
       for (i = pindef->tern_splice; i < def_ix-1; i++) {
         if (pindef->id[i].type == pindef->id[def_ix-1].type &&
@@ -455,8 +495,16 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
       print_lex_sym(sym, str);
       return FALSE;
     }
-
+    prev_numerator = numerator;
     sym_ix++;
+  }
+
+  if (numerator) {
+    lex_type_sym *sym = &syms[lex_sym_cnt-1];
+    print_index_indicator(str, sym->offs_end);
+    KEYPARSERR("Syntax error: expected numerator ");
+    print_lex_sym(sym, str);
+    return FALSE;
   }
 
   return TRUE;
@@ -476,13 +524,25 @@ void def_config_print(def_config *pindef) {
     print("pin%i ? ", pindef->tern_pin);
   }
   for (i = 0; i < APP_CONFIG_DEFS_PER_PIN; i++) {
+    hid_id id = pindef->id[i];
     if (pindef->tern_pin > 0 && i == pindef->tern_splice)
       print(": ");
-    if (pindef->id[i].type != HID_ID_TYPE_NONE) {
-      if (pindef->id[i].type == HID_ID_TYPE_KEYBOARD) {
-        print("%s ", USB_KB_get_keymap(pindef->id[i].kb.kb_code)->name);
-      } else if (pindef->id[i].type == HID_ID_TYPE_MOUSE) {
-        // TODO
+    if (id.type != HID_ID_TYPE_NONE) {
+      if (id.type == HID_ID_TYPE_KEYBOARD) {
+        print("%s ", USB_ARC_get_keymap(id.kb.kb_code)->name);
+      } else if (id.type == HID_ID_TYPE_MOUSE) {
+        print("%s", USB_ARC_get_mousemap(id.mouse.mouse_code)->name);
+        if (id.mouse.mouse_code == MOUSE_X ||
+            id.mouse.mouse_code == MOUSE_Y ||
+            id.mouse.mouse_code == MOUSE_WHEEL) {
+          print("(");
+          if (id.mouse.mouse_acc) {
+            print("ACC");
+          }
+          print("%s%i", id.mouse.mouse_sign ? "-" : "+", id.mouse.mouse_data);
+          print(")");
+        }
+        print(" ");
       }
     }
   }

@@ -72,6 +72,30 @@ static bool parse_pin_nbr(const char *str, lex_type_sym *sym, u8_t *nbr) {
   return TRUE;
 }
 
+static bool parse_numerator_nbr(const char *str, lex_type_sym *sym, s32_t *nbr) {
+  *nbr = 0;
+  int i = 0;
+  bool sign = FALSE;
+  if (str[sym->offs_start + i] == '+') {
+    i++;
+  } else if (str[sym->offs_start + i] == '-') {
+    sign = TRUE;
+    i++;
+  }
+  while (i <= sym->offs_end - sym->offs_start) {
+    *nbr *= 10;
+    char c = str[sym->offs_start + i];
+    if (c < '0' || c > '9')
+      return FALSE;
+    *nbr += c - '0';
+    i++;
+  }
+  if (sign) {
+    *nbr = -*nbr;
+  }
+  return TRUE;
+}
+
 static void print_lex_sym(lex_type_sym *sym, const char *str) {
   int i;
   for (i = sym->offs_start; i < sym->offs_end + 1; i++) {
@@ -248,8 +272,26 @@ static bool lex(const char *str, u16_t len) {
 }
 
 static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
-  // todo
-  return FALSE;
+  // todo acc
+  s32_t nbr = 0;
+  if (!parse_numerator_nbr(str, sym, &nbr)) {
+    print_index_indicator(str, sym->offs_start);
+    KEYPARSERR("Syntax error: could not parse numerator ");
+    print_lex_sym(sym, str);
+    return FALSE;
+  }
+  if (nbr < -128 || nbr > 127 || nbr == 0) {
+    print_index_indicator(str, sym->offs_start);
+    KEYPARSERR("Error: numerator bad value ");
+    print_lex_sym(sym, str);
+    return FALSE;
+  }
+  if (nbr < 0) {
+    id->mouse.mouse_sign = TRUE;
+    nbr = -nbr;
+  }
+  id->mouse.mouse_data = nbr;
+  return TRUE;
 }
 
 // syntax format:
@@ -465,9 +507,6 @@ static bool parse(def_config *pindef, const char *str, lex_type_sym *syms, u8_t 
     } else if (sym->type == LEX_NUM) {
       if (prev_numerator) {
         if (!parse_numerator(sym, str, &pindef->id[def_ix-1])) {
-          print_index_indicator(str, sym->offs_start);
-          KEYPARSERR("Syntax error: could not parse numerator ");
-          print_lex_sym(sym, str);
           return FALSE;
         }
       } else {

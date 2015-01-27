@@ -40,6 +40,7 @@ static struct {
   // config
   u8_t debounce_valid_cycles;
   def_config pin_config[APP_CONFIG_PINS];
+  u16_t mouse_timing_divisor;
 
   // gpio states
   volatile bool dirty_gpio;
@@ -47,23 +48,42 @@ static struct {
   pin_debounce irq_debounce_map[APP_CONFIG_PINS];
   volatile bool irq_cur_pin_active[APP_CONFIG_PINS];
 
+  // app pin states
   app_pin_state pin_state[APP_CONFIG_PINS];
   app_pin_state pin_state_prev[APP_CONFIG_PINS];
+  bool pin_has_mouse[APP_CONFIG_PINS];
 
   // keyboard states
-  usb_kb_report last_usb_keyboard_report;
   volatile bool dirty_kb;
+  usb_kb_report kb_report_prev;
 
   // mouse states
-  usb_mouse_report last_usb_mouse_report;
+  volatile bool dirty_mouse;
+  u8_t butt_mask_prev;
+  volatile u16_t mouse_time;
 
 } app;
 
 /////////////////////////////////////////////////
 
-// keyboard handling
+static void app_get_def_boundary(int pin, int *def_start, int *def_end) {
+  if (app.pin_config[pin].tern_pin) {
+    if (app.pin_state[pin] == PIN_ACTIVE_TERN) {
+      *def_start = app.pin_config[pin].tern_splice;
+      *def_end = APP_CONFIG_DEFS_PER_PIN;
+    } else {
+      *def_start = 0;
+      *def_end = app.pin_config[pin].tern_splice;
+    }
+  } else {
+    *def_start = 0;
+    *def_end = APP_CONFIG_DEFS_PER_PIN;
+  }
+}
 
-void app_send_kb_report(void) {
+// keyboard handling, flank triggered
+
+static void app_send_kb_report(void) {
   int pin;
   int report_ix = 0;
   usb_kb_report report;
@@ -77,19 +97,8 @@ void app_send_kb_report(void) {
 
     // .. find out definitions group depending on ternary or not ..
     int def_start, def_end;
-    if (app.pin_config[pin].tern_pin) {
-      if (app.pin_state[pin] == PIN_ACTIVE_TERN) {
-        def_start = app.pin_config[pin].tern_splice;
-        def_end = APP_CONFIG_DEFS_PER_PIN;
-      } else {
-        def_start = 0;
-        def_end = app.pin_config[pin].tern_splice;
-      }
-    } else {
-      def_start = 0;
-      def_end = APP_CONFIG_DEFS_PER_PIN;
-    }
-    DBG(D_APP, D_DEBUG, "pin %i, check defs %i--%i\n", pin+1, def_start, def_end);
+    app_get_def_boundary(pin, &def_start, &def_end);
+    //DBG(D_APP, D_DEBUG, "pin %i, check defs %i--%i\n", pin+1, def_start, def_end);
 
     // .. and for each definition group ..
     int def;
@@ -117,12 +126,123 @@ void app_send_kb_report(void) {
     } // for each definition in pin
   } // for each pin
 
-  // send keystrokes
-  USB_ARC_KB_tx(&report);
+  // send keystrokes if report has changed since last time
+  int i;
+  bool diff = FALSE;
+  for (i = 0; i < sizeof(usb_kb_report); i++) {
+    if (report.raw[i] != app.kb_report_prev.raw[i]) {
+      diff = TRUE;
+      break;
+    }
+  }
+  if (diff) {
+    USB_ARC_KB_tx(&report);
+    memcpy(&app.kb_report_prev, &report, sizeof(usb_kb_report));
+  }
 
   app.dirty_kb = FALSE;
 }
 
+// mouse handling, level triggered
+
+typedef struct {
+  s32_t dx;
+  s32_t dy;
+  s32_t dw;
+  u8_t butt_mask;
+} mouse_state;
+
+static bool app_check_mouse_levels(mouse_state *ms) {
+  s32_t mdx = 0;
+  s32_t mdy = 0;
+  s32_t mdw = 0;
+  u8_t butt_mask = 0;
+  int pin;
+  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
+    if (!app.pin_has_mouse[pin] || app.pin_state[pin] == PIN_INACTIVE)
+      continue;
+    int def_start, def_end;
+    app_get_def_boundary(pin, &def_start, &def_end);
+
+    int def;
+    for (def = def_start; def < def_end; def++) {
+      if (app.pin_config[pin].id[def].type == HID_ID_TYPE_MOUSE) {
+        bool sign = app.pin_config[pin].id[def].mouse.mouse_sign;
+        u8_t data = app.pin_config[pin].id[def].mouse.mouse_data;
+        // todo acc
+        switch (app.pin_config[pin].id[def].mouse.mouse_code) {
+        case MOUSE_X:
+          if (mdx == 0) mdx += sign ? -data : data;
+          break;
+        case MOUSE_Y:
+          if (mdy == 0) mdy += sign ? -data : data;
+          break;
+        case MOUSE_WHEEL:
+          if (mdw == 0) mdw += sign ? -data : data;
+          break;
+        case MOUSE_BUTTON1:
+          butt_mask |= (1<<2);
+          break;
+        case MOUSE_BUTTON2:
+          butt_mask |= (1<<1);
+          break;
+        case MOUSE_BUTTON3:
+          butt_mask |= (1<<0);
+          break;
+        default: break;
+        }
+      }
+    }
+  }
+
+  if (mdx != 0 || mdy != 0 || mdw != 0 || app.butt_mask_prev != butt_mask) {
+    ms->dx = mdx;
+    ms->dy = mdy;
+    ms->dw = mdw;
+    ms->butt_mask = butt_mask;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static void app_send_mouse_report(mouse_state *ms) {
+  usb_mouse_report report;
+
+  memset(&report, 0, sizeof(report));
+
+  if (ms->dx < -127) {
+    report.dx = -127;
+  } else if (ms->dx > 127) {
+    report.dx = 127;
+  } else {
+    report.dx = ms->dx;
+  }
+  if (ms->dy < -127) {
+    report.dy = -127;
+  } else if (ms->dy > 127) {
+    report.dy = 127;
+  } else {
+    report.dy = ms->dy;
+  }
+  if (ms->dw < -127) {
+    report.wheel = -127;
+  } else if (ms->dw > 127) {
+    report.wheel = 127;
+  } else {
+    report.wheel = ms->dw;
+  }
+
+  report.modifiers = ms->butt_mask;
+
+  USB_ARC_MOUSE_tx(&report);
+
+  app.butt_mask_prev = ms->butt_mask;
+  app.dirty_mouse = FALSE;
+  enter_critical();
+  app.mouse_time = 0;
+  exit_critical();
+}
 
 // lowlevel pin handling
 
@@ -161,6 +281,8 @@ static void app_pins_update(void) {
   app.lock_gpio_sampling = FALSE;
   __DMB();
 
+
+  // keyboard check, flank triggered
   if (!app.dirty_kb) {
     for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
       if (app.pin_state[pin] != app.pin_state_prev[pin]) {
@@ -171,8 +293,28 @@ static void app_pins_update(void) {
   }
 
   if (app.dirty_kb && USB_ARC_KB_can_tx()) {
-    DBG(D_APP, D_DEBUG, "send kb report from pins_update\n");
     app_send_kb_report();
+  }
+
+  // mouse check, level triggered
+  mouse_state ms;
+  bool dirty_mouse_level = app_check_mouse_levels(&ms);
+  if (dirty_mouse_level) print("mdi\n");
+  if (app.mouse_time >= app.mouse_timing_divisor) {
+    bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
+    if ((dirty_mouse_level || app.dirty_mouse) && can_tx_mouse) {
+      app_send_mouse_report(&ms);
+    } else if (dirty_mouse_level && !can_tx_mouse) {
+      app.dirty_mouse = TRUE;
+    }
+  } else {
+    if (dirty_mouse_level) {
+      app.dirty_mouse = TRUE;
+    } else {
+      enter_critical();
+      app.mouse_time = app.mouse_timing_divisor;
+      exit_critical();
+    }
   }
 
   // update app states
@@ -185,13 +327,16 @@ static void app_pins_update(void) {
 
 static void app_kb_usb_ready_msg(u32_t ignore, void *ignore_p) {
   if (app.dirty_kb) {
-    DBG(D_APP, D_DEBUG, "send kb report from kb_usb_ready\n");
     app_send_kb_report();
   }
 }
 
 static void app_mouse_usb_ready_msg(u32_t ignore, void *ignore_p) {
-  app_pins_update();
+  mouse_state ms;
+  bool dirty_mouse = app_check_mouse_levels(&ms);
+  if (app.mouse_time >= app.mouse_timing_divisor && (dirty_mouse || app.dirty_mouse)) {
+    app_send_mouse_report(&ms);
+  }
 }
 
 static void app_pins_dirty_msg(u32_t ignore, void *ignore_p) {
@@ -207,11 +352,9 @@ static void app_kb_ready_irq() {
 }
 
 static void app_mouse_ready_irq() {
-  if (app.dirty_gpio) {
-    task *t = TASK_create(app_mouse_usb_ready_msg, 0);
-    ASSERT(t);
-    TASK_run(t, 0, NULL);
-  }
+  task *t = TASK_create(app_mouse_usb_ready_msg, 0);
+  ASSERT(t);
+  TASK_run(t, 0, NULL);
 }
 
 /////////////////////////////////// IFC
@@ -222,6 +365,7 @@ void APP_init(void) {
   // common
   memset(&app, 0, sizeof(app));
   app.debounce_valid_cycles = 4;
+  app.mouse_timing_divisor = 99;
 
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
@@ -233,6 +377,15 @@ void APP_define_pin(def_config *cfg) {
   app.pin_state[cfg->pin - 1] = PIN_INACTIVE;
   app.pin_state_prev[cfg->pin - 1] = PIN_INACTIVE;
   app.irq_cur_pin_active[cfg->pin - 1] = FALSE;
+
+  int def;
+  app.pin_has_mouse[cfg->pin - 1] = FALSE;
+  for (def = 0; def < APP_CONFIG_DEFS_PER_PIN; def++) {
+    if (cfg->id[def].type == HID_ID_TYPE_MOUSE) {
+      app.pin_has_mouse[cfg->pin - 1] = TRUE;
+      break;
+    }
+  }
 }
 
 void APP_timer(void) {
@@ -272,6 +425,11 @@ void APP_timer(void) {
       ASSERT(t);
       TASK_run(t, 0, NULL);
     }
+  }
+
+  // mouse time divisor
+  if (app.mouse_time < app.mouse_timing_divisor) {
+    app.mouse_time++;
   }
 
   // led blink

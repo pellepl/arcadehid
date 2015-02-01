@@ -43,14 +43,10 @@ static u8_t in[256];
 static int _argc;
 static void *_args[16];
 
+static int f_sym(void);
+
 static int f_usb_init(void);
 static int f_usb_keyboard_test(void);
-
-static int f_usb_test(void);
-static int f_usb_test2(void);
-static int f_usb_test3(void);
-
-static int f_usb_at(void);
 
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
@@ -70,11 +66,30 @@ static int f_build();
 static int f_memfind(int p);
 static int f_memdump(int a, int l);
 
+static int f_def_dummy(void) {return 0;};
+
 static void cli_print_app_name(void);
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static cmd c_tbl[] = {
+    { .name = "def", .fn = (func) f_def_dummy,
+        .help = "Define a pins function\n"
+            "Syntax: def pin<x> = [(def)* | pin<y> ? (def)* : (def)*]\n"
+            "ex: define pin 1 to send keyboard character A\n"
+            "    def pin1 = a\n"
+            "ex: define pin 2 to move mouse up\n"
+            "    def pin2 = mouse_y(-1)\n"
+            "ex: define pin 3 to move mouse right if pin 4 is pressed else left\n"
+            "    def pin3 = pin4 ? mouse_x(1) : mouse_x(-1)\n\n"
+            "To see all possible definitions, use command sym\n"
+    },
+
+    { .name = "sym", .fn = (func) f_sym,
+        .help = "List all possible definitions in def command\n"
+    },
+
     { .name = "usb_init", .fn = (func) f_usb_init,
         .help = "Initializes usb\n"
     },
@@ -87,19 +102,6 @@ static cmd c_tbl[] = {
     },
 
 
-    { .name = "usb_test", .fn = (func) f_usb_test,
-        .help = "Send over usb\n"
-    },
-    { .name = "usb_test2", .fn = (func) f_usb_test2,
-        .help = "Send over usb 2\n"
-    },
-    { .name = "usb_test3", .fn = (func) f_usb_test3,
-        .help = "Send over usb 3\n"
-    },
-
-    { .name = "AT", .fn = (func) f_usb_at,
-        .help = "Responds OK over usb\n"
-    },
 
     { .name = "dump", .fn = (func) f_dump,
         .help = "Dumps state of all system\n"
@@ -200,34 +202,57 @@ static int usb_kb_type_char(char c) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
+static int f_sym(void) {
+  print("KEYBOARD SYMBOLS:\n  ");
+  int cx = 0;
+  enum kb_hid_code kb;
+  for (kb = 0; kb < _KB_HID_CODE_MAX; kb++) {
+    const keymap *kmap = USB_ARC_get_keymap(kb);
+    if (kmap->name) {
+      print("%s%s", kmap->name, kmap->numerator ? "()" : "");
+      cx += strlen(kmap->name) + (kmap->numerator ? 2 : 0);
+      int delta = 20 - (cx % 20);
+      cx += delta;
+      while (delta > 0) {
+        print(" ");
+        delta--;
+      }
+      if (cx > 70) {
+        print("\n  ");
+        cx = 0;
+      }
+    }
+  }
+  print("\n\nMOUSE SYMBOLS:\n  ");
+  cx = 0;
+  enum mouse_code m;
+  for (m = 0; m < _MOUSE_CODE_MAX; m++) {
+    const keymap *kmap = USB_ARC_get_mousemap(m);
+    if (kmap->name) {
+      print("%s%s", kmap->name, kmap->numerator ? "()" : "");
+      cx += strlen(kmap->name) + (kmap->numerator ? 2 : 0);
+      int delta = 20 - (cx % 20);
+      cx += delta;
+      while (delta > 0) {
+        print(" ");
+        delta--;
+      }
+      if (cx > 70) {
+        print("\n  ");
+        cx = 0;
+      }
+    }
+  }
+
+  print("\n");
+  return 0;
+}
+
 static int f_usb_init(void) {
   USB_ARC_init();
   return 0;
 }
 
-
-static int f_usb_test(void) {
-  usb_kb_report r;
-  int k = USB_KB_REPORT_KEYMAP_SIZE;
-  r.modifiers = 0;
-  int i;
-  for (i = 0; i < k; i++)
-    r.keymap[i] = i+4;
-  USB_ARC_KB_tx(&r);
-  for (i = 0; i < k; i++)
-    r.keymap[i] = 0;
-  USB_ARC_KB_tx(&r);
-  return 0;
-}
-static int f_usb_test2(void) {
-  usb_mouse_report r;
-  r.modifiers = 0;
-  r.dx = -8;
-  r.dy = 8;
-  r.wheel = 0;
-  USB_ARC_MOUSE_tx(&r);
-  return 0;
-}
 
 static int f_usb_keyboard_test(void) {
   print("This will generate a lot of keypresses.\n");
@@ -262,20 +287,6 @@ static int f_usb_keyboard_test(void) {
   usb_kb_type_char('O');
   usb_kb_type_char('K');
   usb_kb_type(KB_MOD_NONE, KC_ENTER);
-  return 0;
-}
-
-static int f_usb_test3(void) {
-#ifdef CONFIG_ARCHID_VCD
-  ioprint(IOUSB, "Hej kamrater!\n");
-#endif
-  return 0;
-}
-
-static int f_usb_at(void) {
-#ifdef CONFIG_ARCHID_VCD
-  ioprint(IOUSB, "OK\r\n");
-#endif
   return 0;
 }
 
@@ -543,7 +554,7 @@ static int f_memdump(int addr, int len) {
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static void CLI_parse(u32_t len, u8_t *buf) {
-  if (strcmpbegin("def ", (char*)buf)==0) {
+  if (strcmpbegin("def", (char*)buf)==0) {
     if (buf[len-1] == '\r' || buf[len-1] == '\n') {
       buf[len-1] = 0;
       len--;

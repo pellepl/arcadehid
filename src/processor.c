@@ -117,7 +117,10 @@ static void TIM_config() {
 }
 
 static void GPIO_config() {
+#ifndef CONFIG_HY_TEST_BOARD
+  // disable jtag, only SWD enabled, free pin PB3
   GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
+#endif
 
   const gpio_pin_map *led = GPIO_MAP_get_led_map();
   gpio_config_out(led->port, led->pin, CLK_50MHZ, PUSHPULL, NOPULL);
@@ -127,7 +130,6 @@ static void GPIO_config() {
   for (i = 0; i < APP_CONFIG_PINS; i++) {
     gpio_config(in[i].port, in[i].pin, CLK_2MHZ, IN, AF0, OPENDRAIN, PULLUP);
   }
-
 }
 
 // ifc

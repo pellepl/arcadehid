@@ -15,7 +15,7 @@ FLAGS += -DSTM32F10X_MD
 STARTUP = startup_stm32f10x_md.s
 
 # todo remove
-FLAGS += -DCONFIG_HY_TEST_BOARD
+#FLAGS += -DCONFIG_HY_TEST_BOARD
 
 # ugly hack, will use local vcd implementation instead of the one generic
 FLAGS += -DCONFIG_USB_VCD

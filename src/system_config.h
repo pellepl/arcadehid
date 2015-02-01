@@ -78,7 +78,7 @@
 // STM32 system timer
 #define CONFIG_STM32_SYSTEM_TIMER   2
 // system timer frequency
-#define SYS_MAIN_TIMER_FREQ   40000
+#define SYS_MAIN_TIMER_FREQ   10000
 // system timer counter type
 typedef u16_t system_counter_type;
 // system tick frequency

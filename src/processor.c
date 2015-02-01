@@ -69,7 +69,7 @@ static void NVIC_config(void)
   NVIC_SetPriority(PendSV_IRQn, NVIC_EncodePriority(prioGrp, 7, 1));
 
   // Config & enable TIM interrupt
-  NVIC_SetPriority(STM32_SYSTEM_TIMER_IRQn, NVIC_EncodePriority(prioGrp, 1, 0));
+  NVIC_SetPriority(STM32_SYSTEM_TIMER_IRQn, NVIC_EncodePriority(prioGrp, 3, 0));
   NVIC_EnableIRQ(STM32_SYSTEM_TIMER_IRQn);
 
   // Config & enable uarts interrupt
@@ -117,14 +117,17 @@ static void TIM_config() {
 }
 
 static void GPIO_config() {
+  GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable, ENABLE);
+
   const gpio_pin_map *led = GPIO_MAP_get_led_map();
   gpio_config_out(led->port, led->pin, CLK_50MHZ, PUSHPULL, NOPULL);
 
   const gpio_pin_map *in = GPIO_MAP_get_pin_map();
   int i;
   for (i = 0; i < APP_CONFIG_PINS; i++) {
-    gpio_config_in(in[i].port, in[i].pin, CLK_2MHZ);
+    gpio_config(in[i].port, in[i].pin, CLK_2MHZ, IN, AF0, OPENDRAIN, PULLUP);
   }
+
 }
 
 // ifc

@@ -67,7 +67,8 @@ static int f_assert();
 static int f_dbg();
 static int f_build();
 
-static int f_memfind(int hex);
+static int f_memfind(int p);
+static int f_memdump(int a, int l);
 
 static void cli_print_app_name(void);
 
@@ -136,6 +137,10 @@ static cmd c_tbl[] = {
     {.name = "memfind", .fn = (func) f_memfind,
         .help = "Searches for hex in memory\n"
             "memfind 0xnnnnnnnn\n"
+    },
+    {.name = "memdump", .fn = (func) f_memdump,
+        .help = "Dumps memory\n"
+            "memfind <addr> <len>\n"
     },
     { .name = "assert", .fn = (func) f_assert,
         .help = "Asserts system\n"
@@ -273,6 +278,7 @@ static int f_usb_at(void) {
 #endif
   return 0;
 }
+
 
 static int f_rand() {
   print("%08x\n", rand_next());
@@ -501,6 +507,7 @@ static int f_dump_trace() {
 }
 
 static int f_memfind(int hex) {
+  if (_argc < 1) return -1;
   u8_t *addr = (u8_t*)SRAM_BASE;
   int i;
   print("finding 0x%08x...\n", hex);
@@ -526,6 +533,12 @@ static int f_memfind(int hex) {
   return 0;
 }
 
+static int f_memdump(int addr, int len) {
+  if (_argc < 2) return -1;
+  print("dumping 0x%08x, %i bytes\n", addr, len);
+  printbuf(IOSTD, (u8_t*)addr, len);
+  return 0;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -40,7 +40,9 @@ static struct {
   // config
   u8_t debounce_valid_cycles;
   def_config pin_config[APP_CONFIG_PINS];
-  u16_t mouse_timing_divisor;
+  time mouse_delta;
+  u16_t acc_pos_speed;
+  u16_t acc_wheel_speed;
 
   // gpio states
   volatile bool dirty_gpio;
@@ -58,9 +60,13 @@ static struct {
   usb_kb_report kb_report_prev;
 
   // mouse states
+  task_timer mouse_timer;
+  task *mouse_timer_task;
   volatile bool dirty_mouse;
   u8_t butt_mask_prev;
-  volatile u16_t mouse_time;
+
+  u16_t acc_pos;
+  u16_t acc_whe;
 
 } app;
 
@@ -158,6 +164,9 @@ static bool app_check_mouse_levels(mouse_state *ms) {
   s32_t mdw = 0;
   u8_t butt_mask = 0;
   int pin;
+  bool pos_change = FALSE;
+  bool wheel_change = FALSE;
+
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
     if (!app.pin_has_mouse[pin] || app.pin_state[pin] == PIN_INACTIVE)
       continue;
@@ -169,16 +178,33 @@ static bool app_check_mouse_levels(mouse_state *ms) {
       if (app.pin_config[pin].id[def].type == HID_ID_TYPE_MOUSE) {
         bool sign = app.pin_config[pin].id[def].mouse.mouse_sign;
         u8_t data = app.pin_config[pin].id[def].mouse.mouse_data;
-        // todo acc
+
+        u8_t displacement;
+        if (app.pin_config[pin].id[def].mouse.mouse_acc) {
+          u16_t acc = app.pin_config[pin].id[def].mouse.mouse_code == MOUSE_WHEEL ?
+              app.acc_whe : app.acc_pos;
+          if (acc + data < 0xfff) {
+            displacement = 1+(u8_t)(((u32_t)data * (u32_t)acc) >> 12);
+            displacement = MIN(displacement, data);
+          } else {
+            displacement = data;
+          }
+        } else {
+          displacement = data;
+        }
+
         switch (app.pin_config[pin].id[def].mouse.mouse_code) {
         case MOUSE_X:
-          if (mdx == 0) mdx += sign ? -data : data;
+          if (mdx == 0) mdx += sign ? -displacement : displacement;
+          pos_change = TRUE;
           break;
         case MOUSE_Y:
-          if (mdy == 0) mdy += sign ? -data : data;
+          if (mdy == 0) mdy += sign ? -displacement : displacement;
+          pos_change = TRUE;
           break;
         case MOUSE_WHEEL:
-          if (mdw == 0) mdw += sign ? -data : data;
+          if (mdw == 0) mdw += sign ? -displacement : displacement;
+          wheel_change = TRUE;
           break;
         case MOUSE_BUTTON1:
           butt_mask |= (1<<2);
@@ -195,11 +221,32 @@ static bool app_check_mouse_levels(mouse_state *ms) {
     }
   }
 
-  if (mdx != 0 || mdy != 0 || mdw != 0 || app.butt_mask_prev != butt_mask) {
+  if (pos_change) {
     ms->dx = mdx;
     ms->dy = mdy;
+
+    app.acc_pos = MIN(app.acc_pos + app.acc_pos_speed, 0xfff);
+  } else {
+    ms->dx = 0;
+    ms->dy = 0;
+    app.acc_pos = 0;
+  }
+
+  if (wheel_change) {
     ms->dw = mdw;
+    app.acc_whe = MIN(app.acc_whe + app.acc_wheel_speed, 0xfff);
+  } else {
+    ms->dw = 0;
+    app.acc_whe = 0;
+  }
+
+  if (app.butt_mask_prev != butt_mask) {
     ms->butt_mask = butt_mask;
+  } else {
+    ms->butt_mask = app.butt_mask_prev;
+  }
+
+  if (pos_change || wheel_change || app.butt_mask_prev != butt_mask) {
     return TRUE;
   }
 
@@ -239,9 +286,6 @@ static void app_send_mouse_report(mouse_state *ms) {
 
   app.butt_mask_prev = ms->butt_mask;
   app.dirty_mouse = FALSE;
-  enter_critical();
-  app.mouse_time = 0;
-  exit_critical();
 }
 
 // lowlevel pin handling
@@ -299,22 +343,18 @@ static void app_pins_update(void) {
   // mouse check, level triggered
   mouse_state ms;
   bool dirty_mouse_level = app_check_mouse_levels(&ms);
-  if (dirty_mouse_level) print("mdi\n");
-  if (app.mouse_time >= app.mouse_timing_divisor) {
-    bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
-    if ((dirty_mouse_level || app.dirty_mouse) && can_tx_mouse) {
-      app_send_mouse_report(&ms);
-    } else if (dirty_mouse_level && !can_tx_mouse) {
-      app.dirty_mouse = TRUE;
-    }
+  if (dirty_mouse_level) {
+    TASK_stop_timer(&app.mouse_timer);
+    TASK_start_timer(app.mouse_timer_task, &app.mouse_timer,
+        0, NULL, app.mouse_delta, app.mouse_delta, "mtim");
   } else {
-    if (dirty_mouse_level) {
-      app.dirty_mouse = TRUE;
-    } else {
-      enter_critical();
-      app.mouse_time = app.mouse_timing_divisor;
-      exit_critical();
-    }
+    TASK_stop_timer(&app.mouse_timer);
+  }
+  bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
+  if ((dirty_mouse_level || app.dirty_mouse) && can_tx_mouse) {
+    app_send_mouse_report(&ms);
+  } else if (dirty_mouse_level && !can_tx_mouse) {
+    app.dirty_mouse = TRUE;
   }
 
   // update app states
@@ -334,8 +374,25 @@ static void app_kb_usb_ready_msg(u32_t ignore, void *ignore_p) {
 static void app_mouse_usb_ready_msg(u32_t ignore, void *ignore_p) {
   mouse_state ms;
   bool dirty_mouse = app_check_mouse_levels(&ms);
-  if (app.mouse_time >= app.mouse_timing_divisor && (dirty_mouse || app.dirty_mouse)) {
+  if (!dirty_mouse) {
+    TASK_stop_timer(&app.mouse_timer);
+  }
+  if (app.dirty_mouse) {
     app_send_mouse_report(&ms);
+  }
+}
+
+static void app_mouse_timer_msg(u32_t ignore, void *ignore_p) {
+  mouse_state ms;
+  bool dirty_mouse = app_check_mouse_levels(&ms);
+  bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
+  if ((dirty_mouse || app.dirty_mouse) && can_tx_mouse) {
+    app_send_mouse_report(&ms);
+  } else if (dirty_mouse && !can_tx_mouse) {
+    app.dirty_mouse = TRUE;
+  } else if (!dirty_mouse && !app.dirty_mouse) {
+    app.acc_pos = 0;
+    app.acc_whe = 0;
   }
 }
 
@@ -359,17 +416,22 @@ static void app_mouse_ready_irq() {
 
 /////////////////////////////////// IFC
 
+volatile static bool app_init = FALSE;
 void APP_init(void) {
-  //SYS_dbg_level(D_WARN);
-  //SYS_dbg_mask_enable(D_ANY); // todo remove
-  // common
   memset(&app, 0, sizeof(app));
-  app.debounce_valid_cycles = 4;
-  app.mouse_timing_divisor = 99;
+
+  // default config
+  app.debounce_valid_cycles = 8;
+  app.mouse_delta = 7;
+  app.acc_pos_speed = 4;
+  app.acc_wheel_speed = 4;
+
+  app.mouse_timer_task = TASK_create(app_mouse_timer_msg, TASK_STATIC);
 
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
 
+  app_init = TRUE;
 }
 
 void APP_define_pin(def_config *cfg) {
@@ -389,55 +451,61 @@ void APP_define_pin(def_config *cfg) {
 }
 
 void APP_timer(void) {
-  // input read
-  if (!app.lock_gpio_sampling) {
-    int pin;
-    const gpio_pin_map *map = GPIO_MAP_get_pin_map();
+  if (app_init) {
+    // input read
+    if (!app.lock_gpio_sampling) {
+      int pin;
+      const gpio_pin_map *map = GPIO_MAP_get_pin_map();
 
-    // debouncer
-    bool any_changes = FALSE;
-    for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-      bool pin_active = gpio_get(map[pin].port, map[pin].pin) == 0;
+      // debouncer
+      bool any_changes = FALSE;
+      for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
+        bool pin_active = gpio_get(map[pin].port, map[pin].pin) == 0;
 
-      if (pin_active == app.irq_debounce_map[pin].pin_active) {
-        if (app.irq_debounce_map[pin].same_state < app.debounce_valid_cycles) {
-          app.irq_debounce_map[pin].same_state++;
-        } else {
-          if (app.irq_cur_pin_active[pin] != pin_active) {
-            // pin same state given nbr of cycles, now triggered
-            app.irq_cur_pin_active[pin] = pin_active;
+        if (pin_active == app.irq_debounce_map[pin].pin_active) {
+          if (app.irq_debounce_map[pin].same_state < app.debounce_valid_cycles) {
+            app.irq_debounce_map[pin].same_state++;
+          } else {
+            if (app.irq_cur_pin_active[pin] != pin_active) {
+              // pin same state given nbr of cycles, now triggered
+              app.irq_cur_pin_active[pin] = pin_active;
+            }
           }
+        } else {
+          app.irq_debounce_map[pin].pin_active = pin_active;
+          app.irq_debounce_map[pin].same_state = 0;
         }
-      } else {
-        app.irq_debounce_map[pin].pin_active = pin_active;
-        app.irq_debounce_map[pin].same_state = 0;
+
+        if (app.irq_cur_pin_active[pin] != (app.pin_state[pin] != PIN_INACTIVE)) {
+          any_changes = TRUE;
+          //print("pin %i trig\n", pin);
+        }
       }
 
-      if (app.irq_cur_pin_active[pin] != (app.pin_state[pin] != PIN_INACTIVE)) {
-        any_changes = TRUE;
+      // post change
+      if (!app.dirty_gpio && any_changes) {
+        app.dirty_gpio = TRUE;
+        task *t = TASK_create(app_pins_dirty_msg, 0);
+        ASSERT(t);
+        TASK_run(t, 0, NULL);
       }
     }
-
-    // post change
-    if (!app.dirty_gpio && any_changes) {
-      app.dirty_gpio = TRUE;
-      task *t = TASK_create(app_pins_dirty_msg, 0);
-      ASSERT(t);
-      TASK_run(t, 0, NULL);
-    }
-  }
-
-  // mouse time divisor
-  if (app.mouse_time < app.mouse_timing_divisor) {
-    app.mouse_time++;
   }
 
   // led blink
   const gpio_pin_map *led = GPIO_MAP_get_led_map();
   if (SYS_get_time_ms() % 1000 > 0) {
+#ifdef CONFIG_HY_TEST_BOARD
     gpio_disable(led->port, led->pin);
-  } else {
+#else
     gpio_enable(led->port, led->pin);
+#endif
+  } else {
+#ifdef CONFIG_HY_TEST_BOARD
+    gpio_enable(led->port, led->pin);
+#else
+    gpio_disable(led->port, led->pin);
+#endif
   }
 }
 

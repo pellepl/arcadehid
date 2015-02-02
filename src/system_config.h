@@ -112,7 +112,7 @@ u8_t get_print_output(void);
 #define IOUSB        1
 
 /** MATH **/
-#define CONFIG_TRIGQ_TABLE
+//#define CONFIG_TRIGQ_TABLE
 
 /** TASK KERNEL **/
 #define CONFIG_TASK_POOL 32

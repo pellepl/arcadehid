@@ -45,6 +45,13 @@ static void *_args[16];
 
 static int f_sym(void);
 
+static int f_cfg(void);
+
+static int f_cfg_pin_debounce(u8_t cycles);
+static int f_cfg_mouse_delta(u8_t ms);
+static int f_cfg_acc_pos_speed(u16_t speed);
+static int f_cfg_acc_whe_speed(u16_t speed);
+
 static int f_usb_init(void);
 static int f_usb_keyboard_test(void);
 
@@ -88,6 +95,22 @@ static cmd c_tbl[] = {
 
     { .name = "sym", .fn = (func) f_sym,
         .help = "List all possible definitions in def command\n"
+    },
+
+    { .name = "cfg", .fn = (func) f_cfg,
+        .help = "Display current configuration\n"
+    },
+    { .name = "set_pin_debounce", .fn = (func) f_cfg_pin_debounce,
+        .help = "Set number of required debounce cycles required for a pin state change <0-255>\n"
+    },
+    { .name = "set_mouse_delta", .fn = (func) f_cfg_mouse_delta,
+        .help = "Set number of milliseconds between mouse reports <0-255>\n"
+    },
+    { .name = "set_mouse_pos_acc", .fn = (func) f_cfg_acc_pos_speed,
+        .help = "Set mouse position accelerator speed (0-65535)\n"
+    },
+    { .name = "set_mouse_wheel_acc", .fn = (func) f_cfg_acc_whe_speed,
+        .help = "Set mouse wheel accelerator speed (0-65535)\n"
     },
 
     { .name = "usb_init", .fn = (func) f_usb_init,
@@ -142,7 +165,7 @@ static cmd c_tbl[] = {
     },
     {.name = "memdump", .fn = (func) f_memdump,
         .help = "Dumps memory\n"
-            "memfind <addr> <len>\n"
+            "memdump <addr> <len>\n"
     },
     { .name = "assert", .fn = (func) f_assert,
         .help = "Asserts system\n"
@@ -248,11 +271,55 @@ static int f_sym(void) {
   return 0;
 }
 
+static int f_cfg(void) {
+  print("pin debounce cycles:              %i\n", APP_cfg_get_debounce_cycles());
+  print("mouse report delta:               %i ms\n", APP_cfg_get_mouse_delta_ms());
+  print("mouse position accelerator speed: %i\n", APP_cfg_get_acc_pos_speed());
+  print("mouse wheel accelerator speed:    %i\n", APP_cfg_get_acc_wheel_speed());
+
+  int pin;
+  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
+    def_config *c = APP_cfg_get_pin(pin);
+    if (c->pin) def_config_print(c);
+  }
+
+  return 0;
+}
+
+static int f_cfg_pin_debounce(u8_t cycles) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_debounce_cycles(cycles);
+  return 0;
+}
+static int f_cfg_mouse_delta(u8_t ms) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_mouse_delta_ms(ms);
+  return 0;
+}
+static int f_cfg_acc_pos_speed(u16_t speed) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_acc_pos_speed(speed);
+  return 0;
+}
+static int f_cfg_acc_whe_speed(u16_t speed) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_acc_wheel_speed(speed);
+  return 0;
+}
+
+
 static int f_usb_init(void) {
   USB_ARC_init();
   return 0;
 }
-
 
 static int f_usb_keyboard_test(void) {
   print("This will generate a lot of keypresses.\n");
@@ -413,6 +480,9 @@ static int f_build(void) {
   print("SYS_TIMER_TICK_FREQ %i\n", SYS_TIMER_TICK_FREQ);
   print("UART2_SPEED %i\n", UART2_SPEED);
   print("CONFIG_TASK_POOL %i\n", CONFIG_TASK_POOL);
+  print("APP_CONFIG_PINS %i\n", APP_CONFIG_PINS);
+  print("APP_CONFIG_DEFS_PER_PIN %i\n", APP_CONFIG_DEFS_PER_PIN);
+  print("USB_KB_REPORT_KEYMAP_SIZE %i\n", USB_KB_REPORT_KEYMAP_SIZE);
 
   return 0;
 }
@@ -497,6 +567,17 @@ static int f_help(char *s) {
 }
 
 static int f_dump() {
+  RCC_ClocksTypeDef clocks;
+  RCC_GetClocksFreq(&clocks);
+
+  print("\nCLOCKS\n------\n");
+  print("HCLK:        %i\n", clocks.HCLK_Frequency);
+  print("PCLK1:       %i\n", clocks.PCLK1_Frequency);
+  print("PCKL2:       %i\n", clocks.PCLK2_Frequency);
+  print("SYSCLK:      %i\n", clocks.SYSCLK_Frequency);
+  print("ADCCLK:      %i\n", clocks.ADCCLK_Frequency);
+
+  print("\nMEMORY\n------\n");
   print("ram begin:   %08x\n", RAM_BEGIN);
   print("ram end:     %08x\n", RAM_END);
   print("flash begin: %08x\n", FLASH_BEGIN);
@@ -505,6 +586,10 @@ static int f_dump() {
   print("shmem end:   %08x\n", SHARED_MEMORY_END);
   print("stack begin: %08x\n", STACK_START);
   print("stack end:   %08x\n", STACK_END);
+  print("\n");
+
+  TASK_dump(IOSTD);
+  TASK_dump_pool(IOSTD);
   return 0;
 }
 
@@ -564,7 +649,7 @@ static void CLI_parse(u32_t len, u8_t *buf) {
     if (ok) {
       def_config_print(&pindef);
       print("OK\n");
-      APP_define_pin(&pindef);
+      APP_cfg_set_pin(&pindef);
     }
     print(CLI_PROMPT);
     return;

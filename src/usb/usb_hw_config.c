@@ -10,6 +10,8 @@
 
 #include "usb_serial.h"
 
+#include "gpio.h"
+
 ErrorStatus HSEStartUpStatus;
 /* Extern variables ----------------------------------------------------------*/
 volatile uint8_t kb_tx_complete = 1;
@@ -39,6 +41,13 @@ void USB_Cable_Config(FunctionalState NewState) {
     GPIO_ResetBits(GPIOC, GPIO_Pin_13);
   } else {
     GPIO_SetBits(GPIOC, GPIO_Pin_13);
+  }
+#else
+  if (NewState != DISABLE) {
+    gpio_config(PORTB, PIN9, CLK_2MHZ, OUT, AF0, PUSHPULL, NOPULL);
+    gpio_enable(PORTB, PIN9);
+  } else {
+    gpio_config(PORTB, PIN9, CLK_2MHZ, IN, AF0, OPENDRAIN, NOPULL);
   }
 #endif
 }

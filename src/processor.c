@@ -130,6 +130,8 @@ static void GPIO_config() {
   for (i = 0; i < APP_CONFIG_PINS; i++) {
     gpio_config(in[i].port, in[i].pin, CLK_2MHZ, IN, AF0, OPENDRAIN, PULLUP);
   }
+
+  gpio_config(PORTB, PIN9, CLK_2MHZ, IN, AF0, OPENDRAIN, NOPULL);
 }
 
 // ifc
@@ -145,6 +147,8 @@ void PROC_periph_init() {
 
 #ifdef CONFIG_HY_TEST_BOARD
   gpio_config_out(PORTC, PIN13, CLK_50MHZ, PUSHPULL, NOPULL);
+#else
+  gpio_config(PORTB, PIN9, CLK_2MHZ, IN, AF0, OPENDRAIN, NOPULL);
 #endif
 
   GPIO_config();

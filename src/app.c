@@ -38,8 +38,8 @@ typedef enum {
 
 static struct {
   // config
-  u8_t debounce_valid_cycles;
   def_config pin_config[APP_CONFIG_PINS];
+  u8_t debounce_valid_cycles;
   time mouse_delta;
   u16_t acc_pos_speed;
   u16_t acc_wheel_speed;
@@ -434,7 +434,7 @@ void APP_init(void) {
   app_init = TRUE;
 }
 
-void APP_define_pin(def_config *cfg) {
+void APP_cfg_set_pin(def_config *cfg) {
   memcpy(&app.pin_config[cfg->pin - 1], cfg, sizeof(def_config));
   app.pin_state[cfg->pin - 1] = PIN_INACTIVE;
   app.pin_state_prev[cfg->pin - 1] = PIN_INACTIVE;
@@ -448,6 +448,33 @@ void APP_define_pin(def_config *cfg) {
       break;
     }
   }
+}
+def_config *APP_cfg_get_pin(u8_t pin) {
+  return &app.pin_config[pin];
+}
+void APP_cfg_set_debounce_cycles(u8_t cycles) {
+  app.debounce_valid_cycles = cycles;
+}
+u8_t APP_cfg_get_debounce_cycles(void) {
+  return app.debounce_valid_cycles;
+}
+void APP_cfg_set_mouse_delta_ms(time ms) {
+  app.mouse_delta = ms;
+}
+time APP_cfg_get_mouse_delta_ms(void) {
+  return app.mouse_delta;
+}
+void APP_cfg_set_acc_pos_speed(u16_t speed) {
+  app.acc_pos_speed = speed;
+}
+u16_t APP_cfg_get_acc_pos_speed(void) {
+  return app.acc_pos_speed;
+}
+void APP_cfg_set_acc_wheel_speed(u16_t speed) {
+  app.acc_wheel_speed = speed;
+}
+u16_t APP_cfg_get_acc_wheel_speed(void) {
+  return app.acc_wheel_speed;
 }
 
 void APP_timer(void) {

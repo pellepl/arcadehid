@@ -30,6 +30,7 @@ typedef int (*func)(int a, ...);
 typedef struct cmd_s {
   const char* name;
   const func fn;
+  bool dbg;
   const char* help;
 } cmd;
 
@@ -81,7 +82,7 @@ static void cli_print_app_name(void);
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 static cmd c_tbl[] = {
-    { .name = "def", .fn = (func) f_def_dummy,
+    { .name = "def", .fn = (func) f_def_dummy, .dbg = FALSE,
         .help = "Define a pins function\n"
             "Syntax: def pin<x> = [(def)* | pin<y> ? (def)* : (def)*]\n"
             "ex: define pin 1 to send keyboard character A\n"
@@ -93,31 +94,31 @@ static cmd c_tbl[] = {
             "To see all possible definitions, use command sym\n"
     },
 
-    { .name = "sym", .fn = (func) f_sym,
+    { .name = "sym", .fn = (func) f_sym, .dbg = FALSE,
         .help = "List all possible definitions in def command\n"
     },
 
-    { .name = "cfg", .fn = (func) f_cfg,
+    { .name = "cfg", .fn = (func) f_cfg, .dbg = FALSE,
         .help = "Display current configuration\n"
     },
-    { .name = "set_pin_debounce", .fn = (func) f_cfg_pin_debounce,
+    { .name = "set_pin_debounce", .fn = (func) f_cfg_pin_debounce, .dbg = FALSE,
         .help = "Set number of required debounce cycles required for a pin state change <0-255>\n"
     },
-    { .name = "set_mouse_delta", .fn = (func) f_cfg_mouse_delta,
+    { .name = "set_mouse_delta", .fn = (func) f_cfg_mouse_delta, .dbg = FALSE,
         .help = "Set number of milliseconds between mouse reports <0-255>\n"
     },
-    { .name = "set_mouse_pos_acc", .fn = (func) f_cfg_acc_pos_speed,
+    { .name = "set_mouse_pos_acc", .fn = (func) f_cfg_acc_pos_speed, .dbg = FALSE,
         .help = "Set mouse position accelerator speed (0-65535)\n"
     },
-    { .name = "set_mouse_wheel_acc", .fn = (func) f_cfg_acc_whe_speed,
+    { .name = "set_mouse_wheel_acc", .fn = (func) f_cfg_acc_whe_speed, .dbg = FALSE,
         .help = "Set mouse wheel accelerator speed (0-65535)\n"
     },
 
-    { .name = "usb_init", .fn = (func) f_usb_init,
+    { .name = "usb_init", .fn = (func) f_usb_init, .dbg = TRUE,
         .help = "Initializes usb\n"
     },
 
-    { .name = "usb_test_keyboard", .fn = (func) f_usb_keyboard_test,
+    { .name = "usb_test_keyboard", .fn = (func) f_usb_keyboard_test,.dbg = FALSE,
         .help = "Test keys on keyboard\n"
             "Before running test, open some textpad, e.g. gedit.\n"
             "Run the test, and focus the textpad before countdown\n"
@@ -126,65 +127,66 @@ static cmd c_tbl[] = {
 
 
 
-    { .name = "dump", .fn = (func) f_dump,
+    { .name = "dump", .fn = (func) f_dump, .dbg = TRUE,
         .help = "Dumps state of all system\n"
     },
-    { .name = "dump_trace", .fn = (func) f_dump_trace, .help = "Dumps system trace\n"
+    { .name = "dump_trace", .fn = (func) f_dump_trace, .dbg = TRUE,
+        .help = "Dumps system trace\n"
     },
-    { .name = "time", .fn = (func) f_time,
+    { .name = "time", .fn = (func) f_time, .dbg = TRUE,
         .help = "Prints or sets time\n"
         "time or time <day> <hour> <minute> <second> <millisecond>\n"
     },
-    { .name = "uwrite", .fn = (func) f_uwrite,
+    { .name = "uwrite", .fn = (func) f_uwrite, .dbg = TRUE,
         .help = "Writes to uart\n"
         "uwrite <uart> <string>\n"
             "ex: uwrite 2 \"foo\"\n"
     },
-    { .name = "uread", .fn = (func) f_uread,
+    { .name = "uread", .fn = (func) f_uread, .dbg = TRUE,
         .help = "Reads from uart\n"
         "uread <uart> (<numchars>)\n"
             "numchars - number of chars to read, if omitted uart is drained\n"
             "ex: uread 2 10\n"
     },
-    { .name = "uconf", .fn = (func) f_uconf,
+    { .name = "uconf", .fn = (func) f_uconf, .dbg = TRUE,
         .help = "Configure uart\n"
         "uconf <uart> <speed>\n"
             "ex: uconf 2 9600\n"
     },
 
 
-    { .name = "dbg", .fn = (func) f_dbg,
+    { .name = "dbg", .fn = (func) f_dbg, .dbg = FALSE,
         .help = "Set debug filter and level\n"
         "dbg (level <dbg|info|warn|fatal>) (enable [x]*) (disable [x]*)\n"
         "x - <task|heap|comm|cnc|cli|nvs|spi|all>\n"
         "ex: dbg level info disable all enable cnc comm\n"
     },
-    {.name = "memfind", .fn = (func) f_memfind,
+    {.name = "memfind", .fn = (func) f_memfind, .dbg = TRUE,
         .help = "Searches for hex in memory\n"
             "memfind 0xnnnnnnnn\n"
     },
-    {.name = "memdump", .fn = (func) f_memdump,
+    {.name = "memdump", .fn = (func) f_memdump, .dbg = TRUE,
         .help = "Dumps memory\n"
             "memdump <addr> <len>\n"
     },
-    { .name = "assert", .fn = (func) f_assert,
+    { .name = "assert", .fn = (func) f_assert, .dbg = TRUE,
         .help = "Asserts system\n"
             "NOTE system will need to be rebooted\n"
     },
-    { .name = "rand", .fn = (func) f_rand,
+    { .name = "rand", .fn = (func) f_rand, .dbg = TRUE,
         .help = "Generates pseudo random sequence\n"
     },
-    { .name = "reset", .fn = (func) f_reset,
+    { .name = "reset", .fn = (func) f_reset, .dbg = TRUE,
         .help = "Resets system\n"
     },
-    { .name = "build", .fn = (func) f_build,
+    { .name = "build", .fn = (func) f_build, .dbg = TRUE,
         .help = "Outputs build info\n"
     },
-    { .name = "help", .fn = (func) f_help,
+    { .name = "help", .fn = (func) f_help, .dbg = FALSE,
         .help = "Prints help\n"
         "help or help <command>\n"
     },
-    { .name = "?", .fn = (func) f_help,
+    { .name = "?", .fn = (func) f_help, .dbg = FALSE,
         .help = "Prints help\n"
         "help or help <command>\n" },
 
@@ -551,15 +553,17 @@ static int f_help(char *s) {
     print("\n");
     int i = 0;
     while (c_tbl[i].name != NULL ) {
-      int len = strpbrk(c_tbl[i].help, "\n") - c_tbl[i].help;
-      char tmp[64];
-      strncpy(tmp, c_tbl[i].help, len + 1);
-      tmp[len + 1] = 0;
-      char fill[24];
-      int fill_len = sizeof(fill) - strlen(c_tbl[i].name);
-      memset(fill, ' ', sizeof(fill));
-      fill[fill_len] = 0;
-      print("  %s%s%s", c_tbl[i].name, fill, tmp);
+      if ((c_tbl[i].dbg && __dbg_level < 1) || (!c_tbl[i].dbg)) {
+        int len = strpbrk(c_tbl[i].help, "\n") - c_tbl[i].help;
+        char tmp[64];
+        strncpy(tmp, c_tbl[i].help, len + 1);
+        tmp[len + 1] = 0;
+        char fill[24];
+        int fill_len = sizeof(fill) - strlen(c_tbl[i].name);
+        memset(fill, ' ', sizeof(fill));
+        fill[fill_len] = 0;
+        print("  %s%s%s", c_tbl[i].name, fill, tmp);
+      }
       i++;
     }
   }

@@ -91,6 +91,8 @@ static cmd c_tbl[] = {
             "    def pin2 = mouse_y(-1)\n"
             "ex: define pin 3 to move mouse right if pin 4 is pressed else left\n"
             "    def pin3 = pin4 ? mouse_x(1) : mouse_x(-1)\n\n"
+            "ex: define pin 5 to send keyboard sequence CTRL+ALT+DEL\n"
+            "    def pin5 = LEFT_CTRL LEFT_ALT DELETE\n"
             "To see all possible definitions, use command sym\n"
     },
 
@@ -234,8 +236,8 @@ static int f_sym(void) {
   for (kb = 0; kb < _KB_HID_CODE_MAX; kb++) {
     const keymap *kmap = USB_ARC_get_keymap(kb);
     if (kmap->name) {
-      print("%s%s", kmap->name, kmap->numerator ? "()" : "");
-      cx += strlen(kmap->name) + (kmap->numerator ? 2 : 0);
+      print("%s%s", kmap->name, kmap->numerator ? "(<num>)" : "");
+      cx += strlen(kmap->name) + (kmap->numerator ? 7 : 0);
       int delta = 20 - (cx % 20);
       cx += delta;
       while (delta > 0) {
@@ -254,8 +256,8 @@ static int f_sym(void) {
   for (m = 0; m < _MOUSE_CODE_MAX; m++) {
     const keymap *kmap = USB_ARC_get_mousemap(m);
     if (kmap->name) {
-      print("%s%s", kmap->name, kmap->numerator ? "()" : "");
-      cx += strlen(kmap->name) + (kmap->numerator ? 2 : 0);
+      print("%s%s", kmap->name, kmap->numerator ? "(<num>)" : "");
+      cx += strlen(kmap->name) + (kmap->numerator ? 7 : 0);
       int delta = 20 - (cx % 20);
       cx += delta;
       while (delta > 0) {
@@ -269,6 +271,12 @@ static int f_sym(void) {
     }
   }
 
+  print("\n\nNUMERATORS:\n<num> is defined as [(+)|-](ACC)[0-9].\n");
+  print("Valid number are -127 to 127, excluding 0.\n");
+  print("ex. to move mouse 10 steps right on x axis, use MOUSE_X(10).\n");
+  print("ex. to move mouse 10 steps left on x axis, use MOUSE_X(-10).\n");
+  print("ex. to move mouse accelerating from 1 to 10 steps right on x axis, use MOUSE_X(ACC10).\n");
+  print("ex. to move mouse accelerating from 1 to 10 steps left on x axis, use MOUSE_X(ACC-10).\n");
   print("\n");
   return 0;
 }
@@ -645,9 +653,9 @@ static int f_memdump(int addr, int len) {
 static void CLI_parse(u32_t len, u8_t *buf) {
   if (strcmpbegin("def", (char*)buf)==0) {
     if (buf[len-1] == '\r' || buf[len-1] == '\n') {
-      buf[len-1] = 0;
       len--;
     }
+    memset(&buf[len], 0, sizeof(in)-len);
     def_config pindef;
     bool ok = def_config_parse(&pindef, (char*)&buf[4], len-4);
     if (ok) {

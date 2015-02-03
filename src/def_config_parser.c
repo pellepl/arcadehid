@@ -34,6 +34,7 @@ const char *numdef_chars = "()";
 const char *assign_chars = "=";
 const char *tern_chars = "?:";
 const char *pin_sym = "pin";
+const char *acc_sym = "acc";
 
 static u8_t lex_sym_ix;
 static lex_type_sym lex_syms[MAX_LEX_SYM_LEN];
@@ -57,6 +58,19 @@ static bool is_pin_sym(const char *str, lex_type_sym *sym) {
   return TRUE;
 }
 
+static bool is_acc_sym(const char *str, lex_type_sym *sym) {
+  if (1 + sym->offs_end - sym->offs_start <= strlen(acc_sym)) {
+    return FALSE;
+  }
+  int i;
+  for (i = 0; i < strlen(acc_sym); i++) {
+    if (to_lower(acc_sym[i]) != to_lower(str[sym->offs_start + i])) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 static bool parse_pin_nbr(const char *str, lex_type_sym *sym, u8_t *nbr) {
   if (!is_pin_sym(str, sym))
     return FALSE;
@@ -72,9 +86,9 @@ static bool parse_pin_nbr(const char *str, lex_type_sym *sym, u8_t *nbr) {
   return TRUE;
 }
 
-static bool parse_numerator_nbr(const char *str, lex_type_sym *sym, s32_t *nbr) {
+static bool parse_numerator_nbr(const char *str, lex_type_sym *sym, u32_t offs, s32_t *nbr) {
   *nbr = 0;
-  int i = 0;
+  int i = offs;
   bool sign = FALSE;
   if (str[sym->offs_start + i] == '+') {
     i++;
@@ -272,9 +286,13 @@ static bool lex(const char *str, u16_t len) {
 }
 
 static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
-  // todo acc
   s32_t nbr = 0;
-  if (!parse_numerator_nbr(str, sym, &nbr)) {
+  u32_t offs = 0;
+  if (is_acc_sym(str, sym)) {
+    offs = strlen(acc_sym);
+    id->mouse.mouse_acc = TRUE;
+  }
+  if (!parse_numerator_nbr(str, sym, offs, &nbr)) {
     print_index_indicator(str, sym->offs_start);
     KEYPARSERR("Syntax error: could not parse numerator ");
     print_lex_sym(sym, str);

@@ -63,7 +63,7 @@ void EP2_IN_Callback(void)
 
 #ifdef CONFIG_ARCHID_VCD
 
-void EP5_IN_Callback (void)
+void EP7_IN_Callback (void)
 {
   if (USB_Tx_State == 1)
   {
@@ -79,19 +79,19 @@ void EP5_IN_Callback (void)
       avail = VIRTUAL_COM_PORT_DATA_SIZE;
     }
 
-    UserToPMABufferCopy(buf, ENDP5_TXADDR, avail);
+    UserToPMABufferCopy(buf, ENDP7_TXADDR, avail);
     ringbuf_get(&tx_rb, 0, avail);
-    SetEPTxCount(ENDP5, avail);
-    SetEPTxValid(ENDP5);
+    SetEPTxCount(ENDP7, avail);
+    SetEPTxValid(ENDP7);
   }
 }
 
-void EP4_OUT_Callback(void)
+void EP6_OUT_Callback(void)
 {
   uint16_t USB_Rx_Cnt;
 
   /* Get the received data buffer and update the counter */
-  USB_Rx_Cnt = USB_SIL_Read(EP4_OUT, USB_Rx_Buffer);
+  USB_Rx_Cnt = USB_SIL_Read(EP6_OUT, USB_Rx_Buffer);
 
   /* USB data will be immediately processed, this allow next USB traffic being
   NAKed till the end of the USART Xfer */
@@ -99,7 +99,7 @@ void EP4_OUT_Callback(void)
   ringbuf_put(&rx_rb, USB_Rx_Buffer, USB_Rx_Cnt);
 
   /* Enable the receive of data on EP4 */
-  SetEPRxValid(ENDP4);
+  SetEPRxValid(ENDP6);
 
   if (rx_cb != NULL) {
     rx_cb(ringbuf_available(&rx_rb), NULL);

@@ -41,9 +41,9 @@
 /* defines how many endpoints are used by the device */
 /*-------------------------------------------------------------*/
 #ifdef CONFIG_ARCHID_VCD
-#define EP_NUM     (6)
+#define EP_NUM     (8)
 #else
-#define EP_NUM     (3)
+#define EP_NUM     (5)
 #endif
 
 /*-------------------------------------------------------------*/
@@ -54,13 +54,20 @@
 
 #define ENDP0_RXADDR        (0x40)//(0x18)
 #define ENDP0_TXADDR        (0x80)//(0x58)
+// keyboard endpoint
 #define ENDP1_TXADDR        (0xc0)
+// mouse endpoint
 #define ENDP2_TXADDR        (0x100)
+// joystick1 endpoint
+//#define ENDP3_TXADDR        (0x108)
+// joystick2 endpoint
+//#define ENDP4_TXADDR        (0x110)
 
+// vcd endpoints
 #ifdef CONFIG_ARCHID_VCD
-#define ENDP3_TXADDR        (0x108)
-#define ENDP4_RXADDR        (0x110)
-#define ENDP5_TXADDR        (0x150)
+#define ENDP5_TXADDR        (0x118)
+#define ENDP6_RXADDR        (0x120)
+#define ENDP7_TXADDR        (0x160)
 #endif
 
 /*-------------------------------------------------------------*/
@@ -90,24 +97,25 @@
 #define  EP3_IN_Callback   NOP_Process
 #define  EP4_IN_Callback   NOP_Process
 
-#ifdef CONFIG_ARCHID_VCD
-//#define  EP5_IN_Callback   NOP_Process
-#else
 #define  EP5_IN_Callback   NOP_Process
-#endif
 #define  EP6_IN_Callback   NOP_Process
+
+#ifdef CONFIG_ARCHID_VCD
+//#define  EP7_IN_Callback   NOP_Process
+#else
 #define  EP7_IN_Callback   NOP_Process
+#endif
 
 #define  EP1_OUT_Callback   NOP_Process
 #define  EP2_OUT_Callback   NOP_Process
 #define  EP3_OUT_Callback   NOP_Process
-#ifdef CONFIG_ARCHID_VCD
-//#define  EP4_OUT_Callback   NOP_Process
-#else
 #define  EP4_OUT_Callback   NOP_Process
-#endif
 #define  EP5_OUT_Callback   NOP_Process
+#ifdef CONFIG_ARCHID_VCD
+//#define  EP6_OUT_Callback   NOP_Process
+#else
 #define  EP6_OUT_Callback   NOP_Process
+#endif
 #define  EP7_OUT_Callback   NOP_Process
 
 #endif /*__USB_CONF_H*/

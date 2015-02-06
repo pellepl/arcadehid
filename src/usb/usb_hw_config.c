@@ -205,10 +205,10 @@ void Handle_USBAsynchXfer(void) {
     }
 
     USB_Tx_State = 1;
-    UserToPMABufferCopy(buf, ENDP5_TXADDR, avail);
+    UserToPMABufferCopy(buf, ENDP7_TXADDR, avail);
     ringbuf_get(&tx_rb, 0, avail);
-    SetEPTxCount(ENDP5, avail);
-    SetEPTxValid(ENDP5 );
+    SetEPTxCount(ENDP7, avail);
+    SetEPTxValid(ENDP7 );
   }
 
 }

@@ -200,24 +200,24 @@ void ARC_Reset(void)
 
 #ifdef CONFIG_ARCHID_VCD
 
+  /* Initialize Endpoint 7 */
+  SetEPType(ENDP7, EP_BULK);
+  SetEPTxAddr(ENDP7, ENDP7_TXADDR);
+  SetEPTxStatus(ENDP7, EP_TX_NAK);
+  SetEPRxStatus(ENDP7, EP_RX_DIS);
+
   /* Initialize Endpoint 5 */
-  SetEPType(ENDP5, EP_BULK);
+  SetEPType(ENDP5, EP_INTERRUPT);
   SetEPTxAddr(ENDP5, ENDP5_TXADDR);
-  SetEPTxStatus(ENDP5, EP_TX_NAK);
   SetEPRxStatus(ENDP5, EP_RX_DIS);
+  SetEPTxStatus(ENDP5, EP_TX_NAK);
 
-  /* Initialize Endpoint 3 */
-  SetEPType(ENDP3, EP_INTERRUPT);
-  SetEPTxAddr(ENDP3, ENDP3_TXADDR);
-  SetEPRxStatus(ENDP3, EP_RX_DIS);
-  SetEPTxStatus(ENDP3, EP_TX_NAK);
-
-  /* Initialize Endpoint 4 */
-  SetEPType(ENDP4, EP_BULK);
-  SetEPRxAddr(ENDP4, ENDP4_RXADDR);
-  SetEPRxCount(ENDP4, VIRTUAL_COM_PORT_DATA_SIZE);
-  SetEPRxStatus(ENDP4, EP_RX_VALID);
-  SetEPTxStatus(ENDP4, EP_TX_DIS);
+  /* Initialize Endpoint 6 */
+  SetEPType(ENDP6, EP_BULK);
+  SetEPRxAddr(ENDP6, ENDP6_RXADDR);
+  SetEPRxCount(ENDP6, VIRTUAL_COM_PORT_DATA_SIZE);
+  SetEPRxStatus(ENDP6, EP_RX_VALID);
+  SetEPTxStatus(ENDP6, EP_TX_DIS);
 #endif
 
 

@@ -191,10 +191,10 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x06,   /* bDescriptorSubtype: Union func desc */
     0x02,   /* bMasterInterface: Communication class interface *////////////0x00,   /* bMasterInterface: Communication class interface */
     0x03,   /* bSlaveInterface0: Data Class Interface *//////////0x01,   /* bSlaveInterface0: Data Class Interface */
-    /*Endpoint 3 Descriptor (was 2) IN */
+    /*Endpoint 5 Descriptor (was 2) IN */
     0x07,   /* bLength: Endpoint Descriptor size */
     USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
-    0x83,   /* bEndpointAddress: (IN3) */
+    0x85,   /* bEndpointAddress: (IN5) */
     0x03,   /* bmAttributes: Interrupt */
     VIRTUAL_COM_PORT_INT_SIZE,      /* wMaxPacketSize: */
     0x00,
@@ -209,18 +209,18 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x00,   /* bInterfaceSubClass: */
     0x00,   /* bInterfaceProtocol: */
     0x00,   /* iInterface: */
-    /*Endpoint 4 Descriptor (was 3) OUT */
+    /*Endpoint 6 Descriptor (was 3) OUT */
     0x07,   /* bLength: Endpoint Descriptor size */
     USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
-    0x04,   /* bEndpointAddress: (OUT4) */
+    0x06,   /* bEndpointAddress: (OUT6) */
     0x02,   /* bmAttributes: Bulk */
     VIRTUAL_COM_PORT_DATA_SIZE,             /* wMaxPacketSize: */
     0x00,
     0x00,   /* bInterval: ignore for Bulk transfer */
-    /*Endpoint 5 Descriptor (was 1) IN */
+    /*Endpoint 7 Descriptor (was 1) IN */
     0x07,   /* bLength: Endpoint Descriptor size */
     USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
-    0x85,   /* bEndpointAddress: (IN5) */
+    0x87,   /* bEndpointAddress: (IN7) */
     0x02,   /* bmAttributes: Bulk */
     VIRTUAL_COM_PORT_DATA_SIZE,             /* wMaxPacketSize: */
     0x00,

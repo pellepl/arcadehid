@@ -202,6 +202,19 @@ static void lookup_def(const char *str, lex_type_sym *sym, hid_id *h_id, bool *n
     }
   }
 
+  // test joystick definitions
+  enum joystick_code j_code;
+  for (j_code = 0; j_code < _JOYSTICK_CODE_MAX; j_code++) {
+    const keymap *j_map = USB_ARC_get_joystickmap(j_code);
+    if (j_map->name == NULL) continue;
+    if (sym_strcmp(j_map->name, str, sym) == 0) {
+      h_id->type = HID_ID_TYPE_JOYSTICK;
+      h_id->joy.joystick_code = j_code;
+      *numerator = j_map->numerator;
+      return;
+    }
+  }
+
   h_id->type = HID_ID_TYPE_NONE;
 }
 
@@ -286,6 +299,7 @@ static bool lex(const char *str, u16_t len) {
 }
 
 static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
+  // TODO joystick support
   s32_t nbr = 0;
   u32_t offs = 0;
   if (is_acc_sym(str, sym)) {

@@ -15,7 +15,7 @@ typedef enum {
   HID_ID_TYPE_NONE = 0,
   HID_ID_TYPE_KEYBOARD,
   HID_ID_TYPE_MOUSE,
-  HID_ID_TYPE_RESERVED,
+  HID_ID_TYPE_JOYSTICK,
 } hid_id_type;
 
 typedef struct {
@@ -32,10 +32,18 @@ typedef struct {
     struct {
       hid_id_type type : 2;
       enum mouse_code mouse_code : 4;
+      u8_t reserved : 1;
       u8_t mouse_sign : 1;
       u8_t mouse_acc : 1;
-      u8_t mouse_data : 8;
+      u8_t mouse_data : 7;
     } mouse;
+    struct {
+      hid_id_type type : 2;
+      enum joystick_code joystick_code : 5;
+      u8_t joystick_sign : 1;
+      u8_t joystick_acc : 1;
+      u8_t joystick_data : 7;
+    } joy;
   };
 } __attribute__ (( packed )) hid_id;
 

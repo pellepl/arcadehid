@@ -218,3 +218,43 @@ const keymap *USB_ARC_get_keymap(enum kb_hid_code code) {
 const keymap *USB_ARC_get_mousemap(enum mouse_code code) {
   return &mousecode_map[code];
 }
+
+const keymap joystickcode_map[] = {
+    {.name="JOY1_X", .keys=NULL, .numerator=TRUE},
+    {.name="JOY1_Y", .keys=NULL, .numerator=TRUE},
+    {.name="JOY1_BUTTON1", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON2", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON3", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON4", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON5", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON6", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON7", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON8", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON9", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON10", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON11", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON12", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON13", .keys=NULL, .numerator=FALSE},
+    {.name="JOY1_BUTTON14", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_X", .keys=NULL, .numerator=TRUE},
+    {.name="JOY2_Y", .keys=NULL, .numerator=TRUE},
+    {.name="JOY2_BUTTON1", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON2", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON3", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON4", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON5", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON6", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON7", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON8", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON9", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON10", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON11", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON12", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON13", .keys=NULL, .numerator=FALSE},
+    {.name="JOY2_BUTTON14", .keys=NULL, .numerator=FALSE},
+};
+
+const keymap *USB_ARC_get_joystickmap(enum joystick_code code) {
+  return &joystickcode_map[code];
+}
+

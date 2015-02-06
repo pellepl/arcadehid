@@ -270,8 +270,28 @@ static int f_sym(void) {
       }
     }
   }
+  print("\n\nJOYSTICK SYMBOLS:\n  ");
+  cx = 0;
+  enum joystick_code j;
+  for (j = 0; j < _JOYSTICK_CODE_MAX; j++) {
+    const keymap *kmap = USB_ARC_get_joystickmap(j);
+    if (kmap->name) {
+      print("%s%s", kmap->name, kmap->numerator ? "(<num>)" : "");
+      cx += strlen(kmap->name) + (kmap->numerator ? 7 : 0);
+      int delta = 20 - (cx % 20);
+      cx += delta;
+      while (delta > 0) {
+        print(" ");
+        delta--;
+      }
+      if (cx > 70) {
+        print("\n  ");
+        cx = 0;
+      }
+    }
+  }
 
-  print("\n\nNUMERATORS:\n<num> is defined as [(+)|-](ACC)[0-9].\n");
+  print("\n\nNUMERATORS:\n<num> is defined as (ACC)[(+)|-][1..127].\n");
   print("Valid number are -127 to 127, excluding 0.\n");
   print("ex. to move mouse 10 steps right on x axis, use MOUSE_X(10).\n");
   print("ex. to move mouse 10 steps left on x axis, use MOUSE_X(-10).\n");

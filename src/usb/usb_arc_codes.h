@@ -238,6 +238,44 @@ enum mouse_code {
   _MOUSE_CODE_MAX
 };
 
+enum joystick_code {
+  JOYSTICK1_X = 0,
+  JOYSTICK1_Y,
+  JOYSTICK1_BUTTON1,
+  JOYSTICK1_BUTTON2,
+  JOYSTICK1_BUTTON3,
+  JOYSTICK1_BUTTON4,
+  JOYSTICK1_BUTTON5,
+  JOYSTICK1_BUTTON6,
+  JOYSTICK1_BUTTON7,
+  JOYSTICK1_BUTTON8,
+  JOYSTICK1_BUTTON9,
+  JOYSTICK1_BUTTON10,
+  JOYSTICK1_BUTTON11,
+  JOYSTICK1_BUTTON12,
+  JOYSTICK1_BUTTON13,
+  JOYSTICK1_BUTTON14,
+  JOYSTICK2_X,
+  JOYSTICK2_Y,
+  JOYSTICK2_BUTTON1,
+  JOYSTICK2_BUTTON2,
+  JOYSTICK2_BUTTON3,
+  JOYSTICK2_BUTTON4,
+  JOYSTICK2_BUTTON5,
+  JOYSTICK2_BUTTON6,
+  JOYSTICK2_BUTTON7,
+  JOYSTICK2_BUTTON8,
+  JOYSTICK2_BUTTON9,
+  JOYSTICK2_BUTTON10,
+  JOYSTICK2_BUTTON11,
+  JOYSTICK2_BUTTON12,
+  JOYSTICK2_BUTTON13,
+  JOYSTICK2_BUTTON14,
+};
+// ugly but want to get rid of bit warning in bfield @ def_config.h
+#define _JOYSTICK_CODE_MAX (JOYSTICK2_BUTTON14+1)
+
+
 typedef struct {
   const char *name;
   const char *keys;
@@ -246,5 +284,6 @@ typedef struct {
 
 const keymap *USB_ARC_get_keymap(enum kb_hid_code code);
 const keymap *USB_ARC_get_mousemap(enum mouse_code code);
+const keymap *USB_ARC_get_joystickmap(enum joystick_code code);
 
 #endif /* USB_ARC_CODES_H_ */

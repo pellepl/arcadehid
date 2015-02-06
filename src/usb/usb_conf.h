@@ -59,9 +59,9 @@
 // mouse endpoint
 #define ENDP2_TXADDR        (0x100)
 // joystick1 endpoint
-//#define ENDP3_TXADDR        (0x108)
+#define ENDP3_TXADDR        (0x108)
 // joystick2 endpoint
-//#define ENDP4_TXADDR        (0x110)
+#define ENDP4_TXADDR        (0x110)
 
 // vcd endpoints
 #ifdef CONFIG_ARCHID_VCD
@@ -94,8 +94,8 @@
 /* associated to defined endpoints */
 // #define  EP1_IN_Callback   NOP_Process
 // #define  EP2_IN_Callback   NOP_Process
-#define  EP3_IN_Callback   NOP_Process
-#define  EP4_IN_Callback   NOP_Process
+//#define  EP3_IN_Callback   NOP_Process
+//#define  EP4_IN_Callback   NOP_Process
 
 #define  EP5_IN_Callback   NOP_Process
 #define  EP6_IN_Callback   NOP_Process

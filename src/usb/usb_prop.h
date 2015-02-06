@@ -70,6 +70,7 @@ RESULT ARC_SetProtocol(void);
 uint8_t *ARC_GetProtocolValue(uint16_t Length);
 uint8_t *ARC_GetKBReportDescriptor(uint16_t Length);
 uint8_t *ARC_GetMouseReportDescriptor(uint16_t Length);
+uint8_t *ARC_GetJoystickReportDescriptor(uint16_t Length);
 uint8_t *ARC_GetHIDDescriptor(uint16_t Length);
 uint8_t *ARC_VCP_GetLineCoding(uint16_t Length);
 uint8_t *ARC_VCP_SetLineCoding(uint16_t Length);

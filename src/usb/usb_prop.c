@@ -116,6 +116,12 @@ ONE_DESCRIPTOR ARC_MOUSE_Report_Descriptor =
     ARC_MOUSE_SIZE_REPORT_DESC
   };
 
+ONE_DESCRIPTOR ARC_JOYSTICK_Report_Descriptor =
+  {
+    (uint8_t *)ARC_JOYSTICK_report_descriptor,
+    ARC_JOYSTICK_SIZE_REPORT_DESC
+  };
+
 ONE_DESCRIPTOR ARC_Hid_Descriptor =
   {
     (uint8_t*)ARC_config_descriptor + ARC_OFFS_HID_DESC,
@@ -343,14 +349,16 @@ RESULT ARC_Data_Setup(uint8_t RequestNo)
 
   if ((RequestNo == GET_DESCRIPTOR)
       && (Type_Recipient == (STANDARD_REQUEST | INTERFACE_RECIPIENT))
-      && (pInformation->USBwIndex0 == 0 || pInformation->USBwIndex0 == 1))
+      && (pInformation->USBwIndex0 >= 0 || pInformation->USBwIndex0 <= 3))
   {
     if (pInformation->USBwValue1 == REPORT_DESCRIPTOR)
     {
       if (pInformation->USBwIndex0 == 0) {
         CopyRoutine = ARC_GetKBReportDescriptor;
-      } else {
+      } else if (pInformation->USBwIndex0 == 1) {
         CopyRoutine = ARC_GetMouseReportDescriptor;
+      } else { // ix 2 | | 3
+        CopyRoutine = ARC_GetJoystickReportDescriptor;
       }
     }
     else if (pInformation->USBwValue1 == HID_DESCRIPTOR_TYPE)
@@ -490,6 +498,10 @@ uint8_t *ARC_GetKBReportDescriptor(uint16_t Length)
 uint8_t *ARC_GetMouseReportDescriptor(uint16_t Length)
 {
   return Standard_GetDescriptorData(Length, &ARC_MOUSE_Report_Descriptor);
+}
+uint8_t *ARC_GetJoystickReportDescriptor(uint16_t Length)
+{
+  return Standard_GetDescriptorData(Length, &ARC_JOYSTICK_Report_Descriptor);
 }
 
 /*******************************************************************************

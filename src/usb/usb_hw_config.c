@@ -16,9 +16,12 @@ ErrorStatus HSEStartUpStatus;
 /* Extern variables ----------------------------------------------------------*/
 volatile uint8_t kb_tx_complete = 1;
 volatile uint8_t mouse_tx_complete = 1;
+volatile uint8_t joy1_tx_complete = 1;
+volatile uint8_t joy2_tx_complete = 1;
 
 usb_kb_report_ready_cb_f kb_report_ready_cb = NULL;
 usb_mouse_report_ready_cb_f mouse_report_ready_cb = NULL;
+usb_joy_report_ready_cb_f joy_report_ready_cb = NULL;
 
 uint8_t kb_led_state = 0;
 

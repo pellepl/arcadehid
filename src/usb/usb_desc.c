@@ -75,9 +75,9 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     ARC_SIZE_CONFIG_DESC,               /* wTotalLength: Bytes returned */
     0x00,
 #ifdef CONFIG_ARCHID_VCD
-    0x04,         /*bNumInterfaces: nbr of interfaces */
+/*P*/    0x06,         /*bNumInterfaces: nbr of interfaces */
 #else
-    0x02,         /*bNumInterfaces: nbr of interfaces */
+/*P*/    0x04,         /*bNumInterfaces: nbr of interfaces */
 #endif
     0x01,         /*bConfigurationValue: Configuration value*/
     0x00,         /*iConfiguration: Index of string descriptor describing
@@ -155,13 +155,87 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     1,          /*bInterval: Polling Interval (1 ms)*/
     /* 59 */
 
+    /*P*/
+
+    /************** ifc 3:JOYSTICK1         ****************/
+    /************** Descriptor of interface ****************/
+
+    0x09,         /*bLength: Interface Descriptor size*/
+    USB_INTERFACE_DESCRIPTOR_TYPE,/*bDescriptorType: Interface descriptor type*/
+    0x02,         /*bInterfaceNumber: Number of Interface*/
+    0x00,         /*bAlternateSetting: Alternate setting*/
+    0x01,         /*bNumEndpoints*/
+    0x03,         /*bInterfaceClass: HID*/
+    0x00,         /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
+    0x00,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+    0,            /*iInterface: Index of string descriptor*/
+    /******************** Descriptor of HID ********************/
+    /* 68 */
+    0x09,         /*bLength: HID Descriptor size*/
+    HID_DESCRIPTOR_TYPE, /*bDescriptorType: HID*/
+    0x10,         /*bcdHID: HID Class Spec release number*/
+    0x01,
+    0x00,         /*bCountryCode: Hardware target country*/
+    0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
+    0x22,         /*bDescriptorType*/
+    ARC_JOYSTICK_SIZE_REPORT_DESC,/*wItemLength: Total length of Report descriptor*/
+    0x00,
+    /******************** Descriptor of endpoint ********************/
+    /* 77 */
+    0x07,          /*bLength: Endpoint Descriptor size*/
+    USB_ENDPOINT_DESCRIPTOR_TYPE, /*bDescriptorType:*/
+
+    0x83,          /*bEndpointAddress: Endpoint Address (IN)*/
+    0x03,          /*bmAttributes: Interrupt endpoint*/
+    0x08,          /*wMaxPacketSize: 4 bytes max */
+    0x00,
+    10,          /*bInterval: Polling Interval (10 ms)*/
+    /* 84 */
+
+    /************** ifc 4:JOYSTICK2         ****************/
+    /************** Descriptor of interface ****************/
+
+    0x09,         /*bLength: Interface Descriptor size*/
+    USB_INTERFACE_DESCRIPTOR_TYPE,/*bDescriptorType: Interface descriptor type*/
+    0x03,         /*bInterfaceNumber: Number of Interface*/
+    0x00,         /*bAlternateSetting: Alternate setting*/
+    0x01,         /*bNumEndpoints*/
+    0x03,         /*bInterfaceClass: HID*/
+    0x00,         /*bInterfaceSubClass : 1=BOOT, 0=no boot*/
+    0x00,         /*nInterfaceProtocol : 0=none, 1=keyboard, 2=mouse*/
+    0,            /*iInterface: Index of string descriptor*/
+    /******************** Descriptor of HID ********************/
+    /* 93 */
+    0x09,         /*bLength: HID Descriptor size*/
+    HID_DESCRIPTOR_TYPE, /*bDescriptorType: HID*/
+    0x10,         /*bcdHID: HID Class Spec release number*/
+    0x01,
+    0x00,         /*bCountryCode: Hardware target country*/
+    0x01,         /*bNumDescriptors: Number of HID class descriptors to follow*/
+    0x22,         /*bDescriptorType*/
+    ARC_JOYSTICK_SIZE_REPORT_DESC,/*wItemLength: Total length of Report descriptor*/
+    0x00,
+    /******************** Descriptor of endpoint ********************/
+    /* 102 */
+    0x07,          /*bLength: Endpoint Descriptor size*/
+    USB_ENDPOINT_DESCRIPTOR_TYPE, /*bDescriptorType:*/
+
+    0x84,          /*bEndpointAddress: Endpoint Address (IN)*/
+    0x03,          /*bmAttributes: Interrupt endpoint*/
+    0x08,          /*wMaxPacketSize: 4 bytes max */
+    0x00,
+    10,          /*bInterval: Polling Interval (10 ms)*/
+    /* 109 */
+    /*P*/
+
 #ifdef CONFIG_ARCHID_VCD
-    /************** ifc 3:VCD                ****************/
+    /*P*/
+    /************** ifc 4:VCD                ****************/
     /*Interface Descriptor*/
     0x09,   /* bLength: Interface Descriptor size */
     USB_INTERFACE_DESCRIPTOR_TYPE,  /* bDescriptorType: Interface */
     /* Interface descriptor type */
-    0x02,   /* bInterfaceNumber: Number of Interface */
+    /*P*/0x04,   /* bInterfaceNumber: Number of Interface */
     0x00,   /* bAlternateSetting: Alternate setting */
     0x01,   /* bNumEndpoints: One endpoints used */
     0x02,   /* bInterfaceClass: Communication Interface Class */
@@ -179,7 +253,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x24,   /* bDescriptorType: CS_INTERFACE */
     0x01,   /* bDescriptorSubtype: Call Management Func Desc */
     0x00,   /* bmCapabilities: D0+D1 */
-    0x03,   /* bDataInterface: 3 *////////////0x01,   /* bDataInterface: 1 */
+    /*P*/0x05,   /* bDataInterface: 5 *////////////0x01,   /* bDataInterface: 1 */
     /*ACM Functional Descriptor*/
     0x04,   /* bFunctionLength */
     0x24,   /* bDescriptorType: CS_INTERFACE */
@@ -189,8 +263,8 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x05,   /* bFunctionLength */
     0x24,   /* bDescriptorType: CS_INTERFACE */
     0x06,   /* bDescriptorSubtype: Union func desc */
-    0x02,   /* bMasterInterface: Communication class interface *////////////0x00,   /* bMasterInterface: Communication class interface */
-    0x03,   /* bSlaveInterface0: Data Class Interface *//////////0x01,   /* bSlaveInterface0: Data Class Interface */
+    /*P*/0x04,   /* bMasterInterface: Communication class interface *////////////0x00,   /* bMasterInterface: Communication class interface */
+    /*P*/0x05,   /* bSlaveInterface0: Data Class Interface *//////////0x01,   /* bSlaveInterface0: Data Class Interface */
     /*Endpoint 5 Descriptor (was 2) IN */
     0x07,   /* bLength: Endpoint Descriptor size */
     USB_ENDPOINT_DESCRIPTOR_TYPE,   /* bDescriptorType: Endpoint */
@@ -202,7 +276,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     /*Data class interface descriptor*/
     0x09,   /* bLength: Endpoint Descriptor size */
     USB_INTERFACE_DESCRIPTOR_TYPE,  /* bDescriptorType: */
-    0x03,   /* bInterfaceNumber: Number of Interface */
+    /*P*/0x05,   /* bInterfaceNumber: Number of Interface */
     0x00,   /* bAlternateSetting: Alternate setting */
     0x02,   /* bNumEndpoints: Two endpoints used */
     0x0A,   /* bInterfaceClass: CDC */
@@ -357,6 +431,35 @@ const uint8_t ARC_MOUSE_report_descriptor[ARC_MOUSE_SIZE_REPORT_DESC] =
       0xc0
 
   };
+
+const uint8_t ARC_JOYSTICK_report_descriptor[ARC_JOYSTICK_SIZE_REPORT_DESC] =
+  {
+      0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)
+      0x09, 0x04,                    // USAGE (Joystick)
+      0xa1, 0x01,                    // COLLECTION (Application)
+      0x15, 0x81,                    //   LOGICAL_MINIMUM (-127)
+      0x25, 0x7f,                    //   LOGICAL_MAXIMUM (127)
+      0x05, 0x01,                    //   USAGE_PAGE (Generic Desktop)
+      0x09, 0x01,                    //   USAGE (Pointer)
+      0xa1, 0x00,                    //   COLLECTION (Physical)
+      0x09, 0x30,                    //     USAGE (X)
+      0x09, 0x31,                    //     USAGE (Y)
+      0x75, 0x08,                    //     REPORT_SIZE (8)
+      0x95, 0x02,                    //     REPORT_COUNT (2)
+      0x81, 0x02,                    //     INPUT (Data,Var,Abs)
+      0xc0,                          //   END_COLLECTION
+      0x05, 0x09,                    //   USAGE_PAGE (Button)
+      0x19, 0x01,                    //   USAGE_MINIMUM (Button 1)
+      0x29, 0x08,                    //   USAGE_MAXIMUM (Button 8)
+      0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+      0x25, 0x01,                    //   LOGICAL_MAXIMUM (1)
+      0x75, 0x01,                    //   REPORT_SIZE (1)
+      0x95, 0x10,                    //   REPORT_COUNT (16)
+      0x55, 0x00,                    //   UNIT_EXPONENT (0)
+      0x65, 0x00,                    //   UNIT (None)
+      0x81, 0x02,                    //   INPUT (Data,Var,Abs)
+      0xc0                           // END_COLLECTION
+      };
 
 /* USB String Descriptors (optional) */
 const uint8_t ARC_string_lang_ID[ARC_SIZE_STRING_LANGID] =

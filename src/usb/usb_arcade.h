@@ -33,8 +33,26 @@ typedef struct {
   };
 } usb_mouse_report;
 
+typedef struct {
+  union {
+    u8_t raw[4];
+    struct {
+      s8_t dx;
+      s8_t dy;
+      u8_t buttons1;
+      u8_t buttons2;
+    };
+  };
+} usb_joystick_report;
+
+typedef enum {
+  JOYSTICK1 = 0,
+  JOYSTICK2
+} usb_joystick;
+
 typedef void (*usb_kb_report_ready_cb_f)(void);
 typedef void (*usb_mouse_report_ready_cb_f)(void);
+typedef void (*usb_joy_report_ready_cb_f)(usb_joystick joystick);
 
 bool USB_ARC_KB_can_tx(void);
 bool USB_ARC_MOUSE_can_tx(void);

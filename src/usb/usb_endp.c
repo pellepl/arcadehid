@@ -45,6 +45,7 @@ extern uint8_t USB_Tx_State;
 
 #endif
 
+//keyboard
 void EP1_IN_Callback(void)
 {
   /* Set the transfer complete token to inform upper layer that the current 
@@ -53,12 +54,31 @@ void EP1_IN_Callback(void)
   if (kb_report_ready_cb) kb_report_ready_cb();
 }
 
+//mouse
 void EP2_IN_Callback(void)
 {
   /* Set the transfer complete token to inform upper layer that the current
   transfer has been complete */
   mouse_tx_complete = 1;
   if (mouse_report_ready_cb) mouse_report_ready_cb();
+}
+
+//joystick1
+void EP3_IN_Callback(void)
+{
+  /* Set the transfer complete token to inform upper layer that the current
+  transfer has been complete */
+  joy1_tx_complete = 1;
+  if (joy_report_ready_cb) joy_report_ready_cb(JOYSTICK1);
+}
+
+//joystick2
+void EP4_IN_Callback(void)
+{
+  /* Set the transfer complete token to inform upper layer that the current
+  transfer has been complete */
+  joy2_tx_complete = 1;
+  if (joy_report_ready_cb) joy_report_ready_cb(JOYSTICK2);
 }
 
 #ifdef CONFIG_ARCHID_VCD

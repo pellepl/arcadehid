@@ -56,10 +56,13 @@ typedef void (*usb_joy_report_ready_cb_f)(usb_joystick joystick);
 
 bool USB_ARC_KB_can_tx(void);
 bool USB_ARC_MOUSE_can_tx(void);
+bool USB_ARC_JOYSTICK_can_tx(usb_joystick joystick);
 void USB_ARC_KB_tx(usb_kb_report *report);
 void USB_ARC_MOUSE_tx(usb_mouse_report *report);
+void USB_ARC_JOYSTICK_tx(usb_joystick joystick, usb_joystick_report *report);
 void USB_ARC_set_kb_callback(usb_kb_report_ready_cb_f cb);
 void USB_ARC_set_mouse_callback(usb_mouse_report_ready_cb_f cb);
+void USB_ARC_set_joystick_callback(usb_joy_report_ready_cb_f cb);
 
 void USB_ARC_init(void);
 

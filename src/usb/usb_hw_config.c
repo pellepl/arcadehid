@@ -63,12 +63,20 @@ void USB_ARC_set_mouse_callback(usb_mouse_report_ready_cb_f cb) {
   mouse_report_ready_cb = cb;
 }
 
+void USB_ARC_set_joystick_callback(usb_joy_report_ready_cb_f cb) {
+  joy_report_ready_cb = cb;
+}
+
 bool USB_ARC_KB_can_tx(void) {
   return kb_tx_complete != 0;
 }
 
 bool USB_ARC_MOUSE_can_tx(void) {
   return mouse_tx_complete != 0;
+}
+
+bool USB_ARC_JOYSTICK_can_tx(usb_joystick j) {
+  return j == JOYSTICK1 ? joy1_tx_complete : joy2_tx_complete;
 }
 
 void USB_ARC_KB_tx(usb_kb_report *report)
@@ -108,6 +116,30 @@ void USB_ARC_MOUSE_tx(usb_mouse_report *report)
   /* Enable endpoint for transmission */
   SetEPTxValid(ENDP2);
 
+}
+
+void USB_ARC_JOYSTICK_tx(usb_joystick j, usb_joystick_report *report)
+{
+  uint32_t spoon_guard = 1000000;
+  if (j == JOYSTICK1) {
+    while(joy1_tx_complete==0 && --spoon_guard);
+  } else {
+    while(joy2_tx_complete==0 && --spoon_guard);
+  }
+  ASSERT(spoon_guard > 0);
+
+  /* Reset the control token to inform upper layer that a transfer is ongoing */
+  if (j == JOYSTICK1) {
+    joy1_tx_complete= 0;
+  } else {
+    joy2_tx_complete = 0;
+  }
+
+  /* Copy joystick info in ENDP3/4 Tx Packet Memory Area*/
+  USB_SIL_Write(j == JOYSTICK1 ? EP3_IN : EP4_IN, report->raw, sizeof(report->raw));
+
+  /* Enable endpoint for transmission */
+  SetEPTxValid(j == JOYSTICK1 ? ENDP3 : ENDP4);
 }
 
 void Get_SerialNum(void)

@@ -299,12 +299,18 @@ static bool lex(const char *str, u16_t len) {
 }
 
 static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
-  // TODO joystick support
   s32_t nbr = 0;
   u32_t offs = 0;
-  if (is_acc_sym(str, sym)) {
+  bool is_acc = is_acc_sym(str, sym);
+  if (is_acc) {
     offs = strlen(acc_sym);
-    id->mouse.mouse_acc = TRUE;
+  }
+  if (id->type == HID_ID_TYPE_MOUSE) {
+    id->mouse.mouse_acc = is_acc;
+  } else if (id->type == HID_ID_TYPE_JOYSTICK) {
+    id->joy.joystick_acc = is_acc;
+  } else {
+    ASSERT(FALSE);
   }
   if (!parse_numerator_nbr(str, sym, offs, &nbr)) {
     print_index_indicator(str, sym->offs_start);
@@ -319,10 +325,18 @@ static bool parse_numerator(lex_type_sym *sym, const char *str, hid_id *id) {
     return FALSE;
   }
   if (nbr < 0) {
-    id->mouse.mouse_sign = TRUE;
+    if (id->type == HID_ID_TYPE_MOUSE) {
+      id->mouse.mouse_sign = TRUE;
+    } else if (id->type == HID_ID_TYPE_JOYSTICK) {
+      id->joy.joystick_sign = TRUE;
+    }
     nbr = -nbr;
   }
-  id->mouse.mouse_data = nbr;
+  if (id->type == HID_ID_TYPE_MOUSE) {
+    id->mouse.mouse_data = nbr;
+  } else if (id->type == HID_ID_TYPE_JOYSTICK) {
+    id->joy.joystick_data = nbr;
+  }
   return TRUE;
 }
 
@@ -602,15 +616,26 @@ void def_config_print(def_config *pindef) {
       if (id.type == HID_ID_TYPE_KEYBOARD) {
         print("%s ", USB_ARC_get_keymap(id.kb.kb_code)->name);
       } else if (id.type == HID_ID_TYPE_MOUSE) {
-        print("%s", USB_ARC_get_mousemap(id.mouse.mouse_code)->name);
-        if (id.mouse.mouse_code == MOUSE_X ||
-            id.mouse.mouse_code == MOUSE_Y ||
-            id.mouse.mouse_code == MOUSE_WHEEL) {
+        const keymap *km = USB_ARC_get_mousemap(id.mouse.mouse_code);
+        print("%s", km->name);
+        if (km->numerator) {
           print("(");
           if (id.mouse.mouse_acc) {
             print("ACC");
           }
           print("%s%i", id.mouse.mouse_sign ? "-" : "+", id.mouse.mouse_data);
+          print(")");
+        }
+        print(" ");
+      } else if (id.type == HID_ID_TYPE_JOYSTICK) {
+        const keymap *km = USB_ARC_get_joystickmap(id.joy.joystick_code);
+        print("%s", km->name);
+        if (km->numerator) {
+          print("(");
+          if (id.joy.joystick_acc) {
+            print("ACC");
+          }
+          print("%s%i", id.joy.joystick_sign ? "-" : "+", id.joy.joystick_data);
           print(")");
         }
         print(" ");

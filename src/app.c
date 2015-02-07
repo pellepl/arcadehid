@@ -41,8 +41,10 @@ static struct {
   def_config pin_config[APP_CONFIG_PINS];
   u8_t debounce_valid_cycles;
   time mouse_delta;
+  time joystick_delta;
   u16_t acc_pos_speed;
   u16_t acc_wheel_speed;
+  u16_t acc_joystick_speed;
 
   // gpio states
   volatile bool dirty_gpio;
@@ -63,10 +65,21 @@ static struct {
   task_timer mouse_timer;
   task *mouse_timer_task;
   volatile bool dirty_mouse;
-  u8_t butt_mask_prev;
+  u8_t mouse_butt_mask_prev;
 
   u16_t acc_pos;
   u16_t acc_whe;
+
+  // joystick states
+  task_timer joystick_timer;
+  task *joystick_timer_task;
+  volatile bool dirty_joystick1;
+  volatile bool dirty_joystick2;
+  u8_t joystick1_butt_mask_prev;
+  u8_t joystick2_butt_mask_prev;
+
+  u16_t acc_joy1;
+  u16_t acc_joy2;
 
 } app;
 
@@ -240,13 +253,13 @@ static bool app_check_mouse_levels(mouse_state *ms) {
     app.acc_whe = 0;
   }
 
-  if (app.butt_mask_prev != butt_mask) {
+  if (app.mouse_butt_mask_prev != butt_mask) {
     ms->butt_mask = butt_mask;
   } else {
-    ms->butt_mask = app.butt_mask_prev;
+    ms->butt_mask = app.mouse_butt_mask_prev;
   }
 
-  if (pos_change || wheel_change || app.butt_mask_prev != butt_mask) {
+  if (pos_change || wheel_change || app.mouse_butt_mask_prev != butt_mask) {
     return TRUE;
   }
 
@@ -284,7 +297,7 @@ static void app_send_mouse_report(mouse_state *ms) {
 
   USB_ARC_MOUSE_tx(&report);
 
-  app.butt_mask_prev = ms->butt_mask;
+  app.mouse_butt_mask_prev = ms->butt_mask;
   app.dirty_mouse = FALSE;
 }
 
@@ -396,6 +409,15 @@ static void app_mouse_timer_msg(u32_t ignore, void *ignore_p) {
   }
 }
 
+static void app_joystick_usb_ready_msg(u32_t j, void *ignore_p) {
+  //TODO
+  usb_joystick joy = (usb_joystick)j;
+}
+
+static void app_joystick_timer_msg(u32_t ignore, void *ignore_p) {
+  //TODO
+}
+
 static void app_pins_dirty_msg(u32_t ignore, void *ignore_p) {
   app_pins_update();
 }
@@ -414,6 +436,12 @@ static void app_mouse_ready_irq() {
   TASK_run(t, 0, NULL);
 }
 
+static void app_joystick_ready_irq(usb_joystick j) {
+  task *t = TASK_create(app_joystick_usb_ready_msg, 0);
+  ASSERT(t);
+  TASK_run(t, j, NULL);
+}
+
 /////////////////////////////////// IFC
 
 volatile static bool app_init = FALSE;
@@ -425,11 +453,16 @@ void APP_init(void) {
   app.mouse_delta = 7;
   app.acc_pos_speed = 4;
   app.acc_wheel_speed = 4;
+  app.joystick_delta = 7;
+  app.acc_joystick_speed = 4;
 
   app.mouse_timer_task = TASK_create(app_mouse_timer_msg, TASK_STATIC);
+  app.joystick_timer_task = TASK_create(app_joystick_timer_msg, TASK_STATIC);
 
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
+  USB_ARC_set_joystick_callback(app_joystick_ready_irq);
+
 
   app_init = TRUE;
 }

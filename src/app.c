@@ -56,6 +56,7 @@ static struct {
   app_pin_state pin_state[APP_CONFIG_PINS];
   app_pin_state pin_state_prev[APP_CONFIG_PINS];
   bool pin_has_mouse[APP_CONFIG_PINS];
+  bool pin_has_joystick[APP_CONFIG_PINS];
 
   // keyboard states
   volatile bool dirty_kb;
@@ -71,16 +72,13 @@ static struct {
   u16_t acc_whe;
 
   // joystick states
-  task_timer joystick_timer;
-  task *joystick_timer_task;
-  volatile bool dirty_joystick1;
-  volatile bool dirty_joystick2;
-  u8_t joystick1_butt_mask_prev;
-  u8_t joystick2_butt_mask_prev;
-
-  u16_t acc_joy1;
-  u16_t acc_joy2;
-
+  struct {
+    task_timer timer;
+    task *joystick_timer_task;
+    volatile bool dirty;
+    u16_t butt_mask_prev;
+    u16_t acc_joy;
+  } joystick[2];
 } app;
 
 /////////////////////////////////////////////////
@@ -155,6 +153,11 @@ static void app_send_kb_report(void) {
     }
   }
   if (diff) {
+    IF_DBG(D_APP, D_DEBUG) {
+      print("K[");
+      for (i = 0; i < sizeof(usb_kb_report); i++) print("%02x", report.raw[i]);
+      print("]\n");
+    }
     USB_ARC_KB_tx(&report);
     memcpy(&app.kb_report_prev, &report, sizeof(usb_kb_report));
   }
@@ -169,16 +172,17 @@ typedef struct {
   s32_t dy;
   s32_t dw;
   u8_t butt_mask;
+  bool update;
 } mouse_state;
 
-static bool app_check_mouse_levels(mouse_state *ms) {
+static void app_check_mouse_levels(mouse_state *ms) {
   s32_t mdx = 0;
   s32_t mdy = 0;
   s32_t mdw = 0;
   u8_t butt_mask = 0;
   int pin;
-  bool pos_change = FALSE;
-  bool wheel_change = FALSE;
+  bool pos_update = FALSE;
+  bool wheel_update = FALSE;
 
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
     if (!app.pin_has_mouse[pin] || app.pin_state[pin] == PIN_INACTIVE)
@@ -209,15 +213,15 @@ static bool app_check_mouse_levels(mouse_state *ms) {
         switch (app.pin_config[pin].id[def].mouse.mouse_code) {
         case MOUSE_X:
           if (mdx == 0) mdx += sign ? -displacement : displacement;
-          pos_change = TRUE;
+          pos_update = TRUE;
           break;
         case MOUSE_Y:
           if (mdy == 0) mdy += sign ? -displacement : displacement;
-          pos_change = TRUE;
+          pos_update = TRUE;
           break;
         case MOUSE_WHEEL:
           if (mdw == 0) mdw += sign ? -displacement : displacement;
-          wheel_change = TRUE;
+          wheel_update = TRUE;
           break;
         case MOUSE_BUTTON1:
           butt_mask |= (1<<2);
@@ -234,7 +238,7 @@ static bool app_check_mouse_levels(mouse_state *ms) {
     }
   }
 
-  if (pos_change) {
+  if (pos_update) {
     ms->dx = mdx;
     ms->dy = mdy;
 
@@ -245,7 +249,7 @@ static bool app_check_mouse_levels(mouse_state *ms) {
     app.acc_pos = 0;
   }
 
-  if (wheel_change) {
+  if (wheel_update) {
     ms->dw = mdw;
     app.acc_whe = MIN(app.acc_whe + app.acc_wheel_speed, 0xfff);
   } else {
@@ -259,11 +263,11 @@ static bool app_check_mouse_levels(mouse_state *ms) {
     ms->butt_mask = app.mouse_butt_mask_prev;
   }
 
-  if (pos_change || wheel_change || app.mouse_butt_mask_prev != butt_mask) {
-    return TRUE;
+  if (pos_update || wheel_update || app.mouse_butt_mask_prev != butt_mask) {
+    ms->update = TRUE;
+  } else {
+    ms->update = FALSE;
   }
-
-  return FALSE;
 }
 
 static void app_send_mouse_report(mouse_state *ms) {
@@ -295,10 +299,142 @@ static void app_send_mouse_report(mouse_state *ms) {
 
   report.modifiers = ms->butt_mask;
 
+  DBG(D_APP, D_DEBUG, "M[x:%i y:%i w:%i b:%08b]\n", report.dx, report.dy, report.wheel, report.modifiers);
   USB_ARC_MOUSE_tx(&report);
 
   app.mouse_butt_mask_prev = ms->butt_mask;
   app.dirty_mouse = FALSE;
+}
+
+// joystick handling, level triggered
+
+typedef struct {
+  s32_t dx;
+  s32_t dy;
+  u16_t butt_mask;
+  bool update;
+} joystick_state;
+
+static void app_check_joystick_levels(usb_joystick j_ix, joystick_state *js) {
+  s32_t dx = 0;
+  s32_t dy = 0;
+  u16_t butt_mask = 0;
+  bool dir_update = FALSE;
+
+  int pin;
+
+  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
+    if (!app.pin_has_joystick[pin] || app.pin_state[pin] == PIN_INACTIVE)
+      continue;
+    int def_start, def_end;
+    app_get_def_boundary(pin, &def_start, &def_end);
+
+    int def;
+    for (def = def_start; def < def_end; def++) {
+      if (app.pin_config[pin].id[def].type == HID_ID_TYPE_JOYSTICK) {
+        usb_joystick j_def_ix = app.pin_config[pin].id[def].joy.joystick_code >= _JOYSTICK_IX_2 ? JOYSTICK2 : JOYSTICK1;
+        if (j_def_ix != j_ix) continue;
+
+        enum joystick_code mod_jcode =  app.pin_config[pin].id[def].joy.joystick_code -
+            (j_def_ix == JOYSTICK2 ? _JOYSTICK_IX_2 : _JOYSTICK_IX_1);
+
+        bool sign = app.pin_config[pin].id[def].joy.joystick_sign;
+        u8_t data = app.pin_config[pin].id[def].joy.joystick_data;
+
+        u8_t displacement;
+        if (app.pin_config[pin].id[def].joy.joystick_acc) {
+          u16_t acc = app.joystick[j_ix].acc_joy;
+          if (acc + data < 0xfff) {
+            displacement = 1+(u8_t)(((u32_t)data * (u32_t)acc) >> 12);
+            displacement = MIN(displacement, data);
+          } else {
+            displacement = data;
+          }
+        } else {
+          displacement = data;
+        }
+
+        switch (mod_jcode) {
+        case JOYSTICK1_X:
+          if (dx == 0) dx += sign ? -displacement : displacement;
+          dir_update = TRUE;
+          break;
+        case JOYSTICK1_Y:
+          if (dy == 0) dy += sign ? -displacement : displacement;
+          dir_update = TRUE;
+          break;
+        case JOYSTICK1_BUTTON1:
+        case JOYSTICK1_BUTTON2:
+        case JOYSTICK1_BUTTON3:
+        case JOYSTICK1_BUTTON4:
+        case JOYSTICK1_BUTTON5:
+        case JOYSTICK1_BUTTON6:
+        case JOYSTICK1_BUTTON7:
+        case JOYSTICK1_BUTTON8:
+        case JOYSTICK1_BUTTON9:
+        case JOYSTICK1_BUTTON10:
+        case JOYSTICK1_BUTTON11:
+        case JOYSTICK1_BUTTON12:
+        case JOYSTICK1_BUTTON13:
+        case JOYSTICK1_BUTTON14:
+          butt_mask |= (1<<(mod_jcode - JOYSTICK1_BUTTON1));
+          break;
+        default: break;
+        }
+      }
+    }
+  }
+
+  if (dir_update) {
+    js->dx = dx;
+    js->dy = dy;
+    app.joystick[j_ix].acc_joy = MIN(app.joystick[j_ix].acc_joy + app.acc_joystick_speed, 0xfff);
+  } else {
+    js->dx = 0;
+    js->dy = 0;
+    app.joystick[j_ix].acc_joy = 0;
+  }
+
+  if (app.joystick[j_ix].butt_mask_prev != butt_mask) {
+    js->butt_mask = butt_mask;
+  } else {
+    js->butt_mask = app.joystick[j_ix].butt_mask_prev;
+  }
+
+  if (dir_update || app.joystick[j_ix].butt_mask_prev != butt_mask) {
+    js->update = TRUE;
+  } else {
+    js->update = FALSE;
+  }
+}
+
+static void app_send_joystick_report(usb_joystick j_ix, joystick_state *js) {
+  usb_joystick_report report;
+
+  memset(&report, 0, sizeof(report));
+
+  if (js->dx < -127) {
+    report.dx = -127;
+  } else if (js->dx > 127) {
+    report.dx = 127;
+  } else {
+    report.dx = js->dx;
+  }
+  if (js->dy < -127) {
+    report.dy = -127;
+  } else if (js->dy > 127) {
+    report.dy = 127;
+  } else {
+    report.dy = js->dy;
+  }
+  report.buttons1 = (js->butt_mask >> 8) & 0xff;
+  report.buttons2 = (js->butt_mask) & 0xff;
+
+  DBG(D_APP, D_DEBUG, "J%i[x:%i y:%i b:%16b]\n", (j_ix+1), report.dx, report.dy, js->butt_mask);
+  USB_ARC_JOYSTICK_tx(j_ix, &report);
+
+  app.joystick[j_ix].butt_mask_prev = js->butt_mask;
+  app.joystick[j_ix].dirty = FALSE;
 }
 
 // lowlevel pin handling
@@ -355,8 +491,9 @@ static void app_pins_update(void) {
 
   // mouse check, level triggered
   mouse_state ms;
-  bool dirty_mouse_level = app_check_mouse_levels(&ms);
-  if (dirty_mouse_level) {
+  app_check_mouse_levels(&ms);
+  if (ms.update) {
+    DBG(D_APP, D_DEBUG, "M trig\n");
     TASK_stop_timer(&app.mouse_timer);
     TASK_start_timer(app.mouse_timer_task, &app.mouse_timer,
         0, NULL, app.mouse_delta, app.mouse_delta, "mtim");
@@ -364,10 +501,31 @@ static void app_pins_update(void) {
     TASK_stop_timer(&app.mouse_timer);
   }
   bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
-  if ((dirty_mouse_level || app.dirty_mouse) && can_tx_mouse) {
+  if ((ms.update || app.dirty_mouse) && can_tx_mouse) {
     app_send_mouse_report(&ms);
-  } else if (dirty_mouse_level && !can_tx_mouse) {
+  } else if (ms.update && !can_tx_mouse) {
     app.dirty_mouse = TRUE;
+  }
+
+  // joystick checks, level triggered
+  usb_joystick j_ix;
+  for (j_ix = JOYSTICK1; j_ix <= JOYSTICK2; j_ix++) {
+    joystick_state js;
+    app_check_joystick_levels(j_ix, &js);
+    if (js.update) {
+      DBG(D_APP, D_DEBUG, "J%i trig\n", j_ix);
+      TASK_stop_timer(&app.joystick[j_ix].timer);
+      TASK_start_timer(app.joystick[j_ix].joystick_timer_task, &app.joystick[j_ix].timer,
+          j_ix, NULL, app.joystick_delta, app.joystick_delta, j_ix == JOYSTICK1 ? "jtim1" : "jtim2");
+    } else {
+      TASK_stop_timer(&app.joystick[j_ix].timer);
+    }
+    bool can_tx_joy = USB_ARC_JOYSTICK_can_tx(j_ix);
+    if ((js.update || app.joystick[j_ix].dirty) && can_tx_joy) {
+      app_send_joystick_report(j_ix, &js);
+    } else if (js.update && !can_tx_joy) {
+      app.joystick[j_ix].dirty = TRUE;
+    }
   }
 
   // update app states
@@ -386,8 +544,8 @@ static void app_kb_usb_ready_msg(u32_t ignore, void *ignore_p) {
 
 static void app_mouse_usb_ready_msg(u32_t ignore, void *ignore_p) {
   mouse_state ms;
-  bool dirty_mouse = app_check_mouse_levels(&ms);
-  if (!dirty_mouse) {
+  app_check_mouse_levels(&ms);
+  if (!ms.update) {
     TASK_stop_timer(&app.mouse_timer);
   }
   if (app.dirty_mouse) {
@@ -397,25 +555,42 @@ static void app_mouse_usb_ready_msg(u32_t ignore, void *ignore_p) {
 
 static void app_mouse_timer_msg(u32_t ignore, void *ignore_p) {
   mouse_state ms;
-  bool dirty_mouse = app_check_mouse_levels(&ms);
+  app_check_mouse_levels(&ms);
   bool can_tx_mouse = USB_ARC_MOUSE_can_tx();
-  if ((dirty_mouse || app.dirty_mouse) && can_tx_mouse) {
+  if ((ms.update || app.dirty_mouse) && can_tx_mouse) {
     app_send_mouse_report(&ms);
-  } else if (dirty_mouse && !can_tx_mouse) {
+  } else if (ms.update && !can_tx_mouse) {
     app.dirty_mouse = TRUE;
-  } else if (!dirty_mouse && !app.dirty_mouse) {
+  } else if (!ms.update && !app.dirty_mouse) {
     app.acc_pos = 0;
     app.acc_whe = 0;
   }
 }
 
 static void app_joystick_usb_ready_msg(u32_t j, void *ignore_p) {
-  //TODO
-  usb_joystick joy = (usb_joystick)j;
+  usb_joystick j_ix = (usb_joystick)j;
+  joystick_state js;
+  app_check_joystick_levels(j_ix, &js);
+  if (!js.update) {
+    TASK_stop_timer(&app.joystick[j_ix].timer);
+  }
+  if (app.joystick[j_ix].dirty) {
+    app_send_joystick_report(j_ix, &js);
+  }
 }
 
-static void app_joystick_timer_msg(u32_t ignore, void *ignore_p) {
-  //TODO
+static void app_joystick_timer_msg(u32_t j, void *ignore_p) {
+  usb_joystick j_ix = (usb_joystick)j;
+  joystick_state js;
+  app_check_joystick_levels(j_ix, &js);
+  bool can_tx_joy = USB_ARC_JOYSTICK_can_tx(j_ix);
+  if ((js.update || app.joystick[j_ix].dirty) && can_tx_joy) {
+    app_send_joystick_report(j_ix, &js);
+  } else if (js.update && !can_tx_joy) {
+    app.joystick[j_ix].dirty = TRUE;
+  } else if (!js.update && !app.joystick[j_ix].dirty) {
+    app.joystick[j_ix].acc_joy = 0;
+  }
 }
 
 static void app_pins_dirty_msg(u32_t ignore, void *ignore_p) {
@@ -436,10 +611,10 @@ static void app_mouse_ready_irq() {
   TASK_run(t, 0, NULL);
 }
 
-static void app_joystick_ready_irq(usb_joystick j) {
+static void app_joystick_ready_irq(usb_joystick j_ix) {
   task *t = TASK_create(app_joystick_usb_ready_msg, 0);
   ASSERT(t);
-  TASK_run(t, j, NULL);
+  TASK_run(t, j_ix, NULL);
 }
 
 /////////////////////////////////// IFC
@@ -457,12 +632,12 @@ void APP_init(void) {
   app.acc_joystick_speed = 4;
 
   app.mouse_timer_task = TASK_create(app_mouse_timer_msg, TASK_STATIC);
-  app.joystick_timer_task = TASK_create(app_joystick_timer_msg, TASK_STATIC);
+  app.joystick[JOYSTICK1].joystick_timer_task = TASK_create(app_joystick_timer_msg, TASK_STATIC);
+  app.joystick[JOYSTICK2].joystick_timer_task = TASK_create(app_joystick_timer_msg, TASK_STATIC);
 
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
   USB_ARC_set_joystick_callback(app_joystick_ready_irq);
-
 
   app_init = TRUE;
 }
@@ -475,10 +650,14 @@ void APP_cfg_set_pin(def_config *cfg) {
 
   int def;
   app.pin_has_mouse[cfg->pin - 1] = FALSE;
+  app.pin_has_joystick[cfg->pin - 1] = FALSE;
   for (def = 0; def < APP_CONFIG_DEFS_PER_PIN; def++) {
     if (cfg->id[def].type == HID_ID_TYPE_MOUSE) {
       app.pin_has_mouse[cfg->pin - 1] = TRUE;
-      break;
+      DBG(D_APP, D_DEBUG, "pin %i is a mouse pin\n", cfg->pin);
+    } else if (cfg->id[def].type == HID_ID_TYPE_JOYSTICK) {
+      app.pin_has_joystick[cfg->pin - 1] = TRUE;
+      DBG(D_APP, D_DEBUG, "pin %i is a joystick pin\n", cfg->pin);
     }
   }
 }
@@ -508,6 +687,18 @@ void APP_cfg_set_acc_wheel_speed(u16_t speed) {
 }
 u16_t APP_cfg_get_acc_wheel_speed(void) {
   return app.acc_wheel_speed;
+}
+void APP_cfg_set_joystick_delta_ms(time ms) {
+  app.joystick_delta = ms;
+}
+time APP_cfg_get_joystick_delta_ms(void) {
+  return app.joystick_delta;
+}
+void APP_cfg_set_joystick_acc_speed(u16_t speed) {
+  app.acc_joystick_speed = speed;
+}
+u16_t APP_cfg_get_joystick_acc_speed(void) {
+  return app.acc_joystick_speed;
 }
 
 void APP_timer(void) {

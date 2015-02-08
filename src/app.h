@@ -23,5 +23,9 @@ void APP_cfg_set_acc_pos_speed(u16_t speed);
 u16_t APP_cfg_get_acc_pos_speed(void);
 void APP_cfg_set_acc_wheel_speed(u16_t speed);
 u16_t APP_cfg_get_acc_wheel_speed(void);
+void APP_cfg_set_joystick_delta_ms(time ms);
+time APP_cfg_get_joystick_delta_ms(void);
+void APP_cfg_set_joystick_acc_speed(u16_t speed);
+u16_t APP_cfg_get_joystick_acc_speed(void);
 
 #endif /* APP_H_ */

@@ -193,16 +193,30 @@ void ARC_Reset(void)
   /* Initialize Endpoint 1 */
   SetEPType(ENDP1, EP_INTERRUPT);
   SetEPTxAddr(ENDP1, ENDP1_TXADDR);
-  SetEPTxCount(ENDP1, 4);
+  SetEPTxCount(ENDP1, USB_KB_REPORT_KEYMAP_SIZE);
   SetEPRxStatus(ENDP1, EP_RX_DIS);
   SetEPTxStatus(ENDP1, EP_TX_NAK);
 
   /* Initialize Endpoint 2 */
   SetEPType(ENDP2, EP_INTERRUPT);
   SetEPTxAddr(ENDP2, ENDP2_TXADDR);
-  SetEPTxCount(ENDP2, 4);
+  SetEPTxCount(ENDP2, 8);
   SetEPRxStatus(ENDP2, EP_RX_DIS);
   SetEPTxStatus(ENDP2, EP_TX_NAK);
+
+  /* Initialize Endpoint 3 */
+  SetEPType(ENDP3, EP_INTERRUPT);
+  SetEPTxAddr(ENDP3, ENDP3_TXADDR);
+  SetEPTxCount(ENDP3, 8);
+  SetEPRxStatus(ENDP3, EP_RX_DIS);
+  SetEPTxStatus(ENDP3, EP_TX_NAK);
+
+  /* Initialize Endpoint 4 */
+  SetEPType(ENDP4, EP_INTERRUPT);
+  SetEPTxAddr(ENDP4, ENDP4_TXADDR);
+  SetEPTxCount(ENDP4, 8);
+  SetEPRxStatus(ENDP4, EP_RX_DIS);
+  SetEPTxStatus(ENDP4, EP_TX_NAK);
 
 #ifdef CONFIG_ARCHID_VCD
 

@@ -195,6 +195,8 @@ void hard_fault_handler_c (unsigned int * hardfault_args)
 
   SYS_dump_trace(IODBG);
 
+  SYS_break_if_dbg();
+
   SYS_reboot(REBOOT_CRASH);
 }
 #endif

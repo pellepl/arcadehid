@@ -166,8 +166,10 @@ static bool emit_lex_sym(lex_type_sym *sym, const char *str) {
 
 static int sym_strcmp(const char *str, const char *sym_str, lex_type_sym *sym) {
   char c1, c2;
+  int symlen = strlen(str);
+  if (sym->offs_end - sym->offs_start + 1 != symlen) return -1;
   const char *s2 = &sym_str[sym->offs_start];
-  while ((((c1 = *str++) != 0) & ((c2 = *s2++) != 0)) && s2 <= &sym_str[sym->offs_end]) {
+  while ((((c1 = *str++) != 0) & ((c2 = *s2++) != 0))) {
     if (to_lower(c1) != to_lower(c2)) {
       return -1;
     }

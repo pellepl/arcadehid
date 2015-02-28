@@ -45,7 +45,7 @@ stmcmsisdircore = ${stmlibdir}/CMSIS/CM3/CoreSupport
 tools = ${basetoolsdir}/bin
 
 gensysdir = ../generic/system
-comm = ../generic/comm
+niffs = ../generic/niffs
 
 CPATH =
 SPATH =
@@ -103,8 +103,6 @@ CPATH 		+= ${sourcedir}
 SPATH 		+= ${sourcedir}
 INC			+= -I./${sourcedir}
 
-
-
 # generic system configuration
 include ${CONFIG_MAKE}
 
@@ -119,6 +117,7 @@ CFILES 		+= timer.c
 CFILES 		+= app.c
 CFILES		+= def_config_parser.c
 CFILES		+= gpio_map.c
+CFILES		+= niffs_impl.c
 
 # usb files
 CPATH	+= ${sourcedir}/usb

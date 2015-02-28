@@ -35,3 +35,4 @@ CONFIG_SHARED_MEM = 1
 CONFIG_BOOTLOADER = 0
 
 include ${gensysdir}/include.mk
+include ${niffs}/files.mk

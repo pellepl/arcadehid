@@ -22,6 +22,8 @@
 #include "def_config_parser.h"
 #include "usb/usb_arc_codes.h"
 
+#include "niffs_impl.h"
+
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
 
@@ -56,20 +58,29 @@ static int f_cfg_acc_whe_speed(u16_t speed);
 static int f_usb_init(void);
 static int f_usb_keyboard_test(void);
 
+static int f_fs_mount(void);
+static int f_fs_dump(void);
+static int f_fs_ls(void);
+static int f_fs_save(char *name);
+static int f_fs_load(char *name);
+static int f_fs_rm(char *name);
+static int f_fs_format(void);
+static int f_fs_chk(void);
+
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
 static int f_uconf(int uart, int speed);
 
-static int f_rand();
+static int f_rand(void);
 
-static int f_reset();
+static int f_reset(void);
 static int f_time(int d, int h, int m, int s, int ms);
 static int f_help(char *s);
-static int f_dump();
-static int f_dump_trace();
-static int f_assert();
-static int f_dbg();
-static int f_build();
+static int f_dump(void);
+static int f_dump_trace(void);
+static int f_assert(void);
+static int f_dbg(void);
+static int f_build(void);
 
 static int f_memfind(int p);
 static int f_memdump(int a, int l);
@@ -125,6 +136,32 @@ static cmd c_tbl[] = {
             "Before running test, open some textpad, e.g. gedit.\n"
             "Run the test, and focus the textpad before countdown\n"
             "reaches zero.\nsh "
+    },
+
+
+    { .name = "fs_mount", .fn = (func) f_fs_mount, .dbg = TRUE,
+        .help = "Mounts file system\n"
+    },
+    { .name = "fs_dump", .fn = (func) f_fs_dump, .dbg = TRUE,
+        .help = "Dumps file system\n"
+    },
+    { .name = "ls", .fn = (func) f_fs_ls, .dbg = FALSE,
+        .help = "Lists files\n"
+    },
+    { .name = "save", .fn = (func) f_fs_save, .dbg = FALSE,
+        .help = "Saves current config\n"
+    },
+    { .name = "load", .fn = (func) f_fs_load, .dbg = FALSE,
+        .help = "Loads config\n"
+    },
+    { .name = "rm", .fn = (func) f_fs_rm, .dbg = FALSE,
+        .help = "Removes a config\n"
+    },
+    { .name = "chk", .fn = (func) f_fs_chk, .dbg = FALSE,
+        .help = "Checks file system\n"
+    },
+    { .name = "format", .fn = (func) f_fs_format, .dbg = FALSE,
+        .help = "Formats file system\n"
     },
 
 
@@ -386,6 +423,56 @@ static int f_usb_keyboard_test(void) {
   usb_kb_type(KB_MOD_NONE, KC_ENTER);
   return 0;
 }
+
+static int f_fs_mount(void) {
+  FS_mount();
+  return 0;
+}
+
+static int f_fs_dump(void) {
+  FS_dump();
+  return 0;
+}
+
+static int f_fs_ls(void) {
+  FS_ls();
+  return 0;
+}
+
+static int f_fs_save(char *name) {
+  if (_argc != 1) return -1;
+  int res = FS_save_config(name);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_load(char *name) {
+  if (_argc != 1) return -1;
+  int res = FS_load_config(name);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_rm(char *name) {
+  if (_argc != 1) return -1;
+  int res = FS_rm_config(name);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_format(void) {
+  int res = FS_format();
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_chk(void) {
+  int res = FS_chk();
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+
 
 
 static int f_rand() {

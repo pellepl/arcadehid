@@ -164,15 +164,12 @@ int FS_save_config(char *name) {
     NIFFS_close(&fs, fd);
     return res;
   }
-  u8_t pin;
-  for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
-    def_config *cfg = APP_cfg_get_pin(pin);
-    res = NIFFS_write(&fs, fd, (u8_t *)cfg, sizeof(def_config));
-    if (res < NIFFS_OK) {
-      DBG(D_FS, D_INFO, "save err: write cfg %i\n", res);
-      NIFFS_close(&fs, fd);
-      return res;
-    }
+  def_config *cfg = APP_cfg_get_pin(0);
+    res = NIFFS_write(&fs, fd, (u8_t *)cfg, sizeof(def_config)*hdr.nbr_of_pins);
+  if (res < NIFFS_OK) {
+    DBG(D_FS, D_INFO, "save err: write cfg %i\n", res);
+    NIFFS_close(&fs, fd);
+    return res;
   }
 
   NIFFS_close(&fs, fd);

@@ -23,7 +23,48 @@
 
 #include "usb_arcade.h"
 
+#include "niffs_impl.h"
+
 volatile u8_t print_io = IOSTD;
+
+static int arc_memcmp(void *a, void *b, u32_t len) {
+  u8_t *pa = (u8_t *)a;
+  u8_t *pb = (u8_t *)b;
+  while (len--) {
+    if (*pa++ != *pb++) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+// TODO redesign this
+
+// KB (relative reporting, sticky report)
+//   check keypresses on pin change
+//   if a key is pressed, start timer
+//     continuously check if depressed
+//   handle own keypressed map - NB order is important
+//   never send same keyboard report
+
+// JOYSTICKS (relative reporting, sticky report)
+//   check joystick on pin change
+//   if a joystick is active, start timer
+//     continuously check if depressed
+//     in timer, update accelerator
+//   handle own joystick pressed map
+//   never send same joystick report
+
+// MOUSE (absolute reporting, non-sticky report)
+//   check mouse on pin change
+//   if a mouse is active, start timer
+//     continuously check if depressed
+//     in timer, update accelerator
+//   handle own mouse pressed map
+//   do send same mouse report if necessary
+
+typedef bool (* construct_active_map_f)(void *p);
+typedef void (* construct_report_f)(void *p);
 
 typedef struct __attribute__ (( packed )) {
   bool pin_active : 1;
@@ -56,7 +97,10 @@ static struct {
   app_pin_state pin_state[APP_CONFIG_PINS];
   app_pin_state pin_state_prev[APP_CONFIG_PINS];
   bool pin_has_mouse[APP_CONFIG_PINS];
-  bool pin_has_joystick[APP_CONFIG_PINS];
+  u8_t pin_has_joystick[APP_CONFIG_PINS]; // bit 0 is joy1, bit 1 is joy2..
+
+  // fs
+  bool fs_mounted;
 
   // keyboard states
   volatile bool dirty_kb;
@@ -80,6 +124,113 @@ static struct {
     u16_t acc_joy;
   } joystick[2];
 } app;
+
+
+typedef struct {
+  hid_id_type type;
+  u8_t index;
+  bool pending_change;    // if there are pending changes not sent over usb yet
+  task_timer timer;       // update poll timer
+  task *timer_task;       // update poll task
+  u16_t accelerator_1;    // current accelerator
+  u16_t accelerator_2;    // current accelerator secondary
+  bool report_filter;     // if same device report should be filtered away or not
+  void *active_mask;     // device dependent state to synch over usb
+  void *active_mask_cur; // device dependent state to synch over usb
+  u32_t active_mask_len;  // length of device dependent state
+  construct_active_map_f map_const;
+  void *report;          // device dependent report
+  void *report_prev;     // device dependent report, previous
+  u32_t report_len;       // length of device report
+  construct_report_f report_const;
+} device_info;
+
+typedef u8_t kb_active_mask[_KB_HID_CODE_MAX];
+typedef u32_t mouse_active_mask;
+typedef u32_t joy_active_mask;
+
+static void device_start_timer(device_info *d) {
+  time tim_delta;
+  switch (d->type) {
+  case HID_ID_TYPE_MOUSE: tim_delta = app.mouse_delta; break;
+  case HID_ID_TYPE_JOYSTICK: tim_delta = app.joystick_delta; break;
+  default: tim_delta = 10; break;
+  }
+  TASK_stop_timer(&d->timer);
+  TASK_start_timer(d->timer_task, &d->timer, 0, d, tim_delta, tim_delta, "tim");
+}
+
+static void device_pincheck(device_info *d, bool *active) {
+  *active = d->map_const(d->active_mask_cur);
+  bool diff = arc_memcmp(d->active_mask, d->active_mask_cur, d->active_mask_len);
+  d->pending_change = diff;
+  memcpy(d->active_mask, d->active_mask_cur, d->active_mask_len);
+}
+
+static void device_handle_timer(device_info *d) {
+  // get active map
+  bool active;
+  device_pincheck(d, &active);
+
+  // update accelerators
+  if (!active) {
+    d->accelerator_1 = 0;
+    d->accelerator_2 = 0;
+  } else {
+    switch (d->type) {
+    case HID_ID_TYPE_MOUSE: {
+      mouse_active_mask mask = *((mouse_active_mask *)d->active_mask);
+      if (mask & ((1 << MOUSE_X) | (1 << MOUSE_Y))) {
+        d->accelerator_1 = MIN(d->accelerator_1 + app.acc_pos_speed, 0xfff);
+      } else {
+        d->accelerator_1 = 0;
+      }
+      if (mask & (1 << MOUSE_WHEEL)) {
+        d->accelerator_2 = MIN(d->accelerator_2 + app.acc_wheel_speed, 0xfff);
+      } else {
+        d->accelerator_2 = 0;
+      }
+      break;
+    }
+    case HID_ID_TYPE_JOYSTICK: {
+      joy_active_mask mask = *((joy_active_mask *)d->active_mask);
+      if ((mask & ((1 << JOYSTICK1_X) | (1 << JOYSTICK1_Y)))!=0 ||
+          (mask & ((1 << JOYSTICK2_X) | (1 << JOYSTICK2_Y))) != 0) {
+        d->accelerator_1 = MIN(d->accelerator_1 + app.acc_joystick_speed, 0xfff);
+      } else {
+        d->accelerator_1 = 0;
+      }
+      break;
+    }
+    default: break;
+    }
+  }
+
+  // still have pending data needing to be sent, no update so far
+  if (d->pending_change) return;
+
+  // construct report
+  d->report_const(d->report);
+
+  if (d->report_filter) {
+    // relative reporting, do not send same report twice
+    if (arc_memcmp(d->report, d->report_prev, d->report_len) == 0) {
+      d->pending_change = FALSE;
+      return;
+    } else {
+      memcpy(d->report_prev, d->report, d->report_len);
+    }
+  } else {
+    // absolute reporting, keep sending while pin is active
+    d->pending_change = TRUE;
+  }
+
+  if (!active) {
+    TASK_stop_timer(&d->timer);
+  }
+}
+
+
 
 /////////////////////////////////////////////////
 
@@ -480,6 +631,9 @@ static void app_pins_update(void) {
     for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
       if (app.pin_state[pin] != app.pin_state_prev[pin]) {
         app.dirty_kb = TRUE;
+        if (app.pin_has_joystick[pin]) {
+          // TODO
+        }
         break;
       }
     }
@@ -553,6 +707,18 @@ static void app_mouse_usb_ready_msg(u32_t ignore, void *ignore_p) {
   }
 }
 
+static void app_joystick_usb_ready_msg(u32_t j, void *ignore_p) {
+  usb_joystick j_ix = (usb_joystick)j;
+  joystick_state js;
+  app_check_joystick_levels(j_ix, &js);
+  if (!js.update) {
+    TASK_stop_timer(&app.joystick[j_ix].timer);
+  }
+  if (app.joystick[j_ix].dirty) {
+    app_send_joystick_report(j_ix, &js);
+  }
+}
+
 static void app_mouse_timer_msg(u32_t ignore, void *ignore_p) {
   mouse_state ms;
   app_check_mouse_levels(&ms);
@@ -564,18 +730,6 @@ static void app_mouse_timer_msg(u32_t ignore, void *ignore_p) {
   } else if (!ms.update && !app.dirty_mouse) {
     app.acc_pos = 0;
     app.acc_whe = 0;
-  }
-}
-
-static void app_joystick_usb_ready_msg(u32_t j, void *ignore_p) {
-  usb_joystick j_ix = (usb_joystick)j;
-  joystick_state js;
-  app_check_joystick_levels(j_ix, &js);
-  if (!js.update) {
-    TASK_stop_timer(&app.joystick[j_ix].timer);
-  }
-  if (app.joystick[j_ix].dirty) {
-    app_send_joystick_report(j_ix, &js);
   }
 }
 
@@ -617,12 +771,9 @@ static void app_joystick_ready_irq(usb_joystick j_ix) {
   TASK_run(t, j_ix, NULL);
 }
 
-/////////////////////////////////// IFC
+/////////////////////////////////// DEF CFG
 
-volatile static bool app_init = FALSE;
-void APP_init(void) {
-  memset(&app, 0, sizeof(app));
-
+static void app_config_default(void) {
   // default config
   app.debounce_valid_cycles = 8;
   app.mouse_delta = 7;
@@ -630,6 +781,95 @@ void APP_init(void) {
   app.acc_wheel_speed = 4;
   app.joystick_delta = 7;
   app.acc_joystick_speed = 4;
+  memset(&app.pin_config, 0x00, sizeof(app.pin_config));
+
+  def_config cfg;
+  memset(&cfg, 0x00, sizeof(def_config));
+
+  // pin1 = JOYSTICK1_Y(-127) UP
+  cfg.pin = 1;
+  cfg.id[0].type = HID_ID_TYPE_JOYSTICK;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_Y;
+  cfg.id[0].joy.joystick_sign = 1;
+  cfg.id[0].joy.joystick_data = 127;
+  cfg.id[1].type = HID_ID_TYPE_KEYBOARD;
+  cfg.id[1].kb.kb_code  = KC_UP;
+  APP_cfg_set_pin(&cfg);
+  // pin2 = JOYSTICK1_Y(127) DOWN
+  cfg.pin = 2;
+  cfg.id[0].joy.joystick_sign = 0;
+  cfg.id[1].kb.kb_code  = KC_DOWN;
+  APP_cfg_set_pin(&cfg);
+  // pin3 = JOYSTICK1_X(-127) LEFT
+  cfg.pin = 3;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_X;
+  cfg.id[0].joy.joystick_sign = 1;
+  cfg.id[1].kb.kb_code  = KC_LEFT;
+  APP_cfg_set_pin(&cfg);
+  // pin4 = JOYSTICK1_X(127) RIGHT
+  cfg.pin = 4;
+  cfg.id[0].joy.joystick_sign = 0;
+  cfg.id[1].kb.kb_code  = KC_RIGHT;
+  APP_cfg_set_pin(&cfg);
+  cfg.id[1].type = HID_ID_TYPE_NONE;
+  // pin4 = JOYSTICK1_BUTTON1
+  cfg.pin = 5;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_BUTTON1;
+  APP_cfg_set_pin(&cfg);
+  // pin5 = JOYSTICK1_BUTTON2
+  cfg.pin = 6;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_BUTTON2;
+  APP_cfg_set_pin(&cfg);
+  // pin6 = JOYSTICK1_BUTTON3
+  cfg.pin = 7;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_BUTTON3;
+  APP_cfg_set_pin(&cfg);
+  // pin7 = JOYSTICK1_BUTTON4
+  cfg.pin = 8;
+  cfg.id[0].joy.joystick_code = JOYSTICK1_BUTTON4;
+  APP_cfg_set_pin(&cfg);
+
+  cfg.id[0].joy.joystick_code = JOYSTICK2_Y;
+  cfg.id[0].joy.joystick_sign = 1;
+  cfg.id[0].joy.joystick_data = 127;
+  APP_cfg_set_pin(&cfg);
+  // pin13 = JOYSTICK2_Y(127)
+  cfg.pin = 13;
+  cfg.id[0].joy.joystick_sign = 0;
+  APP_cfg_set_pin(&cfg);
+  // pin14 = JOYSTICK2_X(-127)
+  cfg.pin = 14;
+  cfg.id[0].joy.joystick_code = JOYSTICK2_X;
+  cfg.id[0].joy.joystick_sign = 1;
+  APP_cfg_set_pin(&cfg);
+  // pin15 = JOYSTICK2_X(127)
+  cfg.pin = 15;
+  cfg.id[0].joy.joystick_sign = 0;
+  APP_cfg_set_pin(&cfg);
+  // pin16 = JOYSTICK2_BUTTON1
+  cfg.pin = 16;
+  cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON1;
+  APP_cfg_set_pin(&cfg);
+  // pin17 = JOYSTICK2_BUTTON2
+  cfg.pin = 17;
+  cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON2;
+  APP_cfg_set_pin(&cfg);
+  // pin18 = JOYSTICK2_BUTTON3
+  cfg.pin = 18;
+  cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON3;
+  APP_cfg_set_pin(&cfg);
+  // pin19 = JOYSTICK2_BUTTON4
+  cfg.pin = 19;
+  cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON4;
+  APP_cfg_set_pin(&cfg);
+}
+
+/////////////////////////////////// IFC
+
+volatile static bool app_init = FALSE;
+void APP_init(void) {
+  memset(&app, 0, sizeof(app));
+
 
   app.mouse_timer_task = TASK_create(app_mouse_timer_msg, TASK_STATIC);
   app.joystick[JOYSTICK1].joystick_timer_task = TASK_create(app_joystick_timer_msg, TASK_STATIC);
@@ -638,6 +878,26 @@ void APP_init(void) {
   USB_ARC_set_kb_callback(app_kb_ready_irq);
   USB_ARC_set_mouse_callback(app_mouse_ready_irq);
   USB_ARC_set_joystick_callback(app_joystick_ready_irq);
+
+  int res = FS_mount();
+  if (res == NIFFS_OK) {
+    app.fs_mounted = TRUE;
+  } else {
+    DBG(D_APP, D_WARN, "could not mount fs- error %i\n", res);
+  }
+
+  if (app.fs_mounted) {
+    res = FS_load_config("default");
+    if (res == ERR_NIFFS_FILE_NOT_FOUND) {
+      app_config_default();
+      DBG(D_APP, D_INFO, "no default config found, saving factory default");
+      res = FS_save_config("default");
+    }
+
+    if (res != NIFFS_OK) {
+      DBG(D_APP, D_WARN, "fs error %i\n", res);
+    }
+  }
 
   app_init = TRUE;
 }
@@ -650,13 +910,17 @@ void APP_cfg_set_pin(def_config *cfg) {
 
   int def;
   app.pin_has_mouse[cfg->pin - 1] = FALSE;
-  app.pin_has_joystick[cfg->pin - 1] = FALSE;
+  app.pin_has_joystick[cfg->pin - 1] = 0;
   for (def = 0; def < APP_CONFIG_DEFS_PER_PIN; def++) {
     if (cfg->id[def].type == HID_ID_TYPE_MOUSE) {
       app.pin_has_mouse[cfg->pin - 1] = TRUE;
       DBG(D_APP, D_DEBUG, "pin %i is a mouse pin\n", cfg->pin);
     } else if (cfg->id[def].type == HID_ID_TYPE_JOYSTICK) {
-      app.pin_has_joystick[cfg->pin - 1] = TRUE;
+      if (cfg->id[def].joy.joystick_code < _JOYSTICK_IX_2) {
+        app.pin_has_joystick[cfg->pin - 1] |= 1<<0;
+      } else {
+        app.pin_has_joystick[cfg->pin - 1] |= 1<<1;
+      }
       DBG(D_APP, D_DEBUG, "pin %i is a joystick pin\n", cfg->pin);
     }
   }

@@ -330,8 +330,8 @@ static bool joystick_construct_report(void *d_v, void *r_v) {
   r->dx = dx < 0 ? MAX(-127, dx) : MIN(127, dx);
   r->dy = dy < 0 ? MAX(-127, dy) : MIN(127, dy);
 
-  r->buttons1 = (butt_mask >> 8) & 0xff;
-  r->buttons2 = (butt_mask) & 0xff;
+  r->buttons1 = (butt_mask) & 0xff;
+  r->buttons2 = (butt_mask>>8) & 0xff;
 
   return active;
 }
@@ -668,33 +668,33 @@ static void app_config_default(void) {
   cfg.id[0].joy.joystick_sign = 1;
   cfg.id[0].joy.joystick_data = 127;
   APP_cfg_set_pin(&cfg);
-  // pin13 = JOYSTICK2_Y(127)
-  cfg.pin = 13;
+  // pin14 = JOYSTICK2_Y(127)
+  cfg.pin = 14;
   cfg.id[0].joy.joystick_sign = 0;
   APP_cfg_set_pin(&cfg);
-  // pin14 = JOYSTICK2_X(-127)
-  cfg.pin = 14;
+  // pin15 = JOYSTICK2_X(-127)
+  cfg.pin = 15;
   cfg.id[0].joy.joystick_code = JOYSTICK2_X;
   cfg.id[0].joy.joystick_sign = 1;
   APP_cfg_set_pin(&cfg);
-  // pin15 = JOYSTICK2_X(127)
-  cfg.pin = 15;
+  // pin16 = JOYSTICK2_X(127)
+  cfg.pin = 16;
   cfg.id[0].joy.joystick_sign = 0;
   APP_cfg_set_pin(&cfg);
-  // pin16 = JOYSTICK2_BUTTON1
-  cfg.pin = 16;
+  // pin17 = JOYSTICK2_BUTTON1
+  cfg.pin = 17;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON1;
   APP_cfg_set_pin(&cfg);
-  // pin17 = JOYSTICK2_BUTTON2
-  cfg.pin = 17;
+  // pin18 = JOYSTICK2_BUTTON2
+  cfg.pin = 18;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON2;
   APP_cfg_set_pin(&cfg);
-  // pin18 = JOYSTICK2_BUTTON3
-  cfg.pin = 18;
+  // pin19 = JOYSTICK2_BUTTON3
+  cfg.pin = 19;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON3;
   APP_cfg_set_pin(&cfg);
-  // pin19 = JOYSTICK2_BUTTON4
-  cfg.pin = 19;
+  // pin20 = JOYSTICK2_BUTTON4
+  cfg.pin = 20;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON4;
   APP_cfg_set_pin(&cfg);
 }

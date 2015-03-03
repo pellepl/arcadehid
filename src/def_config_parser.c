@@ -165,16 +165,17 @@ static bool emit_lex_sym(lex_type_sym *sym, const char *str) {
 }
 
 static int sym_strcmp(const char *str, const char *sym_str, lex_type_sym *sym) {
-  char c1, c2;
-  int symlen = strlen(str);
-  if (sym->offs_end - sym->offs_start + 1 != symlen) return -1;
+  char symdef, userdef;
+  int symdeflen = strlen(str);
+
+  if (sym->offs_end - sym->offs_start + 1 < symdeflen) return -1;
   const char *s2 = &sym_str[sym->offs_start];
-  while ((((c1 = *str++) != 0) & ((c2 = *s2++) != 0))) {
-    if (to_lower(c1) != to_lower(c2)) {
+  while ((((symdef = *str++) != 0) & ((userdef = *s2++) != 0))) {
+    if (to_lower(symdef) != to_lower(userdef)) {
       return -1;
     }
   }
-  return to_lower(c1) - to_lower(c2);
+  return (userdef == 0 || userdef == '(') ? 0 : 1;
 }
 
 static void lookup_def(const char *str, lex_type_sym *sym, hid_id *h_id, bool *numerator) {

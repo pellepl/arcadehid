@@ -61,8 +61,6 @@ int main(void) {
   return 0;
 }
 
-// assert failed handler from stmlib? TODO
-
 void assert_failed(uint8_t* file, uint32_t line) {
   SYS_assert((char*)file, (s32_t)line);
 }

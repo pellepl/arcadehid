@@ -55,7 +55,7 @@ static int f_cfg_mouse_delta(u8_t ms);
 static int f_cfg_acc_pos_speed(u16_t speed);
 static int f_cfg_acc_whe_speed(u16_t speed);
 
-static int f_usb_init(void);
+static int f_usb_enable(int ena);
 static int f_usb_keyboard_test(void);
 
 static int f_fs_mount(void);
@@ -127,8 +127,8 @@ static cmd c_tbl[] = {
         .help = "Set mouse wheel accelerator speed (0-65535)\n"
     },
 
-    { .name = "usb_init", .fn = (func) f_usb_init, .dbg = TRUE,
-        .help = "Initializes usb\n"
+    { .name = "usb_enable", .fn = (func) f_usb_enable, .dbg = FALSE,
+        .help = "Enables or disables usb\n"
     },
 
     { .name = "usb_test_keyboard", .fn = (func) f_usb_keyboard_test,.dbg = FALSE,
@@ -383,8 +383,18 @@ static int f_cfg_acc_whe_speed(u16_t speed) {
 }
 
 
-static int f_usb_init(void) {
-  USB_ARC_init();
+static int f_usb_enable(int ena) {
+  if (_argc != 1) {
+    return -1;
+  }
+  if (ena) {
+    print("Enable usb\n");
+    USB_Cable_Config(ENABLE);
+    USB_ARC_init();
+  } else {
+    print("Disable usb\n");
+    USB_Cable_Config(DISABLE);
+  }
   return 0;
 }
 

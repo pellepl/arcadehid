@@ -213,7 +213,6 @@ void USB_SER_get_rx_callback(usb_serial_rx_cb *cb, void **arg) {
 }
 
 bool USB_SER_assure_tx(bool on) {
-  // TODO
   return FALSE;
 }
 
@@ -222,7 +221,6 @@ void USB_SER_tx_drain(void) {
 }
 
 void USB_SER_tx_flush(void) {
-  // TODO
 }
 
 void Handle_USBAsynchXfer(void) {

@@ -180,6 +180,9 @@ void USB_ARC_init(void) {
   ringbuf_init(&tx_rb, tx_buf, sizeof(tx_buf));
   ringbuf_init(&rx_rb, rx_buf, sizeof(rx_buf));
 #endif
+}
+
+void USB_ARC_start(void) {
   USB_Init();
 }
 

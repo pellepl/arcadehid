@@ -9,6 +9,7 @@
 #include "system.h"
 #include "gpio.h"
 #include "gpio_map.h"
+#include "usb_hw_config.h"
 
 static void RCC_config() {
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
@@ -131,7 +132,7 @@ static void GPIO_config() {
     gpio_config(in[i].port, in[i].pin, CLK_2MHZ, IN, AF0, OPENDRAIN, PULLUP);
   }
 
-  gpio_config(PORTB, PIN9, CLK_2MHZ, IN, AF0, OPENDRAIN, NOPULL);
+  USB_Cable_Config(DISABLE);
 }
 
 // ifc

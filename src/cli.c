@@ -54,6 +54,8 @@ static int f_cfg_pin_debounce(u8_t cycles);
 static int f_cfg_mouse_delta(u8_t ms);
 static int f_cfg_acc_pos_speed(u16_t speed);
 static int f_cfg_acc_whe_speed(u16_t speed);
+static int f_cfg_joy_delta(u8_t ms);
+static int f_cfg_joy_acc_speed(u16_t speed);
 
 static int f_usb_enable(int ena);
 static int f_usb_keyboard_test(void);
@@ -125,6 +127,12 @@ static cmd c_tbl[] = {
     },
     { .name = "set_mouse_wheel_acc", .fn = (func) f_cfg_acc_whe_speed, .dbg = FALSE,
         .help = "Set mouse wheel accelerator speed (0-65535)\n"
+    },
+    { .name = "set_joy_delta", .fn = (func) f_cfg_joy_delta, .dbg = FALSE,
+        .help = "Set number of milliseconds between joystick reports <0-255>\n"
+    },
+    { .name = "set_joy_acc", .fn = (func) f_cfg_joy_acc_speed, .dbg = FALSE,
+        .help = "Set joystick direction accelerator speed (0-65535)\n"
     },
 
     { .name = "usb_enable", .fn = (func) f_usb_enable, .dbg = FALSE,
@@ -339,10 +347,12 @@ static int f_sym(void) {
 }
 
 static int f_cfg(void) {
-  print("pin debounce cycles:              %i\n", APP_cfg_get_debounce_cycles());
-  print("mouse report delta:               %i ms\n", APP_cfg_get_mouse_delta_ms());
-  print("mouse position accelerator speed: %i\n", APP_cfg_get_acc_pos_speed());
-  print("mouse wheel accelerator speed:    %i\n", APP_cfg_get_acc_wheel_speed());
+  print("pin debounce cycles:                  %i\n", APP_cfg_get_debounce_cycles());
+  print("mouse report delta:                   %i ms\n", APP_cfg_get_mouse_delta_ms());
+  print("mouse position accelerator speed:     %i\n", APP_cfg_get_acc_pos_speed());
+  print("mouse wheel accelerator speed:        %i\n", APP_cfg_get_acc_wheel_speed());
+  print("joystick report delta:                %i ms\n", APP_cfg_get_joystick_delta_ms());
+  print("joystick direction accelerator speed: %i\n", APP_cfg_get_joystick_acc_speed());
 
   int pin;
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
@@ -382,6 +392,20 @@ static int f_cfg_acc_whe_speed(u16_t speed) {
   return 0;
 }
 
+static int f_cfg_joy_delta(u8_t ms) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_joystick_delta_ms(ms);
+  return 0;
+}
+static int f_cfg_joy_acc_speed(u16_t speed) {
+  if (_argc != 1) {
+    return -1;
+  }
+  APP_cfg_set_joystick_acc_speed(speed);
+  return 0;
+}
 
 static int f_usb_enable(int ena) {
   if (_argc != 1) {

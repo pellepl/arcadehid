@@ -65,5 +65,6 @@ void USB_ARC_set_mouse_callback(usb_mouse_report_ready_cb_f cb);
 void USB_ARC_set_joystick_callback(usb_joy_report_ready_cb_f cb);
 
 void USB_ARC_init(void);
+void USB_ARC_start(void);
 
 #endif /* USB_ARC_H_ */

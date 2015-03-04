@@ -395,7 +395,35 @@ static void device_send_report(device_info *d) {
   memcpy(d->report_prev, d->report, d->report_len);
 }
 
-// lowlevel pin handling
+static void device_check_report_dispatch(device_info *d, bool active) {
+  bool can_send = device_can_send(d);
+  if (d->report_filter) {
+    // relative reporting, do not send same report twice
+    if (arc_memcmp(d->report, d->report_prev, d->report_len) == 0) {
+      // report same as previous, do not send
+      d->pending_change = FALSE;
+    } else {
+      // report changed, send
+      if (can_send) {
+        device_send_report(d);
+      } else {
+        DBG(D_APP, D_DEBUG, "device %i:%i pending report\n", d->type, d->index);
+        d->pending_change = TRUE;
+      }
+    }
+  } else {
+    if (active) {
+      // absolute reporting, keep sending while any related pin is active
+      if (can_send) {
+        device_send_report(d);
+      } else {
+        d->pending_change = TRUE;
+      }
+    }
+  }
+}
+
+///////////////////////////////// PIN HANDLING
 
 static void app_trigger_pin(u8_t pin, bool active) {
   DBG(D_APP, D_DEBUG, "pin %i %s\n", (pin+1), active ? "!":"-");
@@ -440,37 +468,13 @@ static void app_pins_update(void) {
     if (d->pending_change) continue;
 
     bool active = d->construct_report(d, d->report);
-    bool can_send = device_can_send(d);
     if (active) {
       DBG(D_APP, D_DEBUG, "device %i:%i active\n", d->type, d->index);
     } else {
       DBG(D_APP, D_DEBUG, "device %i:%i inactive\n", d->type, d->index);
     }
 
-    if (d->report_filter) {
-      // relative reporting, do not send same report twice
-      if (arc_memcmp(d->report, d->report_prev, d->report_len) == 0) {
-        // report same as previous, do not send
-        d->pending_change = FALSE;
-      } else {
-        // report changed, send
-        if (can_send) {
-          device_send_report(d);
-        } else {
-          DBG(D_APP, D_DEBUG, "device %i:%i pending report\n", d->type, d->index);
-          d->pending_change = TRUE;
-        }
-      }
-    } else {
-      if (active) {
-        // absolute reporting, keep sending while any related pin is active
-        if (can_send) {
-          device_send_report(d);
-        } else {
-          d->pending_change = TRUE;
-        }
-      }
-    }
+    device_check_report_dispatch(d, active);
 
     if (active && !d->timer_started) {
       // device pin pressed, start polling timer
@@ -525,31 +529,7 @@ static void app_device_timer_task(u32_t ignore, void *d_v) {
     }
   }
 
-  bool can_send = device_can_send(d);
-
-  if (d->report_filter) {
-    // relative reporting, do not send same report twice
-    if (arc_memcmp(d->report, d->report_prev, d->report_len) == 0) {
-      // report same as previous, do not send
-      d->pending_change = FALSE;
-    } else {
-      // report changed, send
-      if (can_send) {
-        device_send_report(d);
-      } else {
-        d->pending_change = TRUE;
-      }
-    }
-  } else {
-    // absolute reporting, keep sending while any related pin is active
-    if (active) {
-      if (can_send) {
-        device_send_report(d);
-      } else {
-        d->pending_change = TRUE;
-      }
-    }
-  }
+  device_check_report_dispatch(d, active);
 
   if (!active) {
     // no pins pressed, so stop polling this device
@@ -667,34 +647,36 @@ static void app_config_default(void) {
   cfg.id[0].joy.joystick_code = JOYSTICK2_Y;
   cfg.id[0].joy.joystick_sign = 1;
   cfg.id[0].joy.joystick_data = 127;
-  APP_cfg_set_pin(&cfg);
-  // pin14 = JOYSTICK2_Y(127)
+  // pin14 = JOYSTICK2_Y(-127)
   cfg.pin = 14;
+  APP_cfg_set_pin(&cfg);
+  // pin15 = JOYSTICK2_Y(127)
+  cfg.pin = 15;
   cfg.id[0].joy.joystick_sign = 0;
   APP_cfg_set_pin(&cfg);
-  // pin15 = JOYSTICK2_X(-127)
-  cfg.pin = 15;
+  // pin16 = JOYSTICK2_X(-127)
+  cfg.pin = 16;
   cfg.id[0].joy.joystick_code = JOYSTICK2_X;
   cfg.id[0].joy.joystick_sign = 1;
   APP_cfg_set_pin(&cfg);
-  // pin16 = JOYSTICK2_X(127)
-  cfg.pin = 16;
+  // pin17 = JOYSTICK2_X(127)
+  cfg.pin = 17;
   cfg.id[0].joy.joystick_sign = 0;
   APP_cfg_set_pin(&cfg);
-  // pin17 = JOYSTICK2_BUTTON1
-  cfg.pin = 17;
+  // pin18 = JOYSTICK2_BUTTON1
+  cfg.pin = 18;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON1;
   APP_cfg_set_pin(&cfg);
-  // pin18 = JOYSTICK2_BUTTON2
-  cfg.pin = 18;
+  // pin19 = JOYSTICK2_BUTTON2
+  cfg.pin = 19;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON2;
   APP_cfg_set_pin(&cfg);
-  // pin19 = JOYSTICK2_BUTTON3
-  cfg.pin = 19;
+  // pin20 = JOYSTICK2_BUTTON3
+  cfg.pin = 20;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON3;
   APP_cfg_set_pin(&cfg);
-  // pin20 = JOYSTICK2_BUTTON4
-  cfg.pin = 20;
+  // pin21 = JOYSTICK2_BUTTON4
+  cfg.pin = 21;
   cfg.id[0].joy.joystick_code = JOYSTICK2_BUTTON4;
   APP_cfg_set_pin(&cfg);
 }
@@ -704,11 +686,6 @@ static void app_config_default(void) {
 volatile static bool app_init = FALSE;
 void APP_init(void) {
   memset(&app, 0, sizeof(app));
-
-
-  USB_ARC_set_kb_callback(app_kb_usb_cts_irq);
-  USB_ARC_set_mouse_callback(app_mouse_usb_cts_irq);
-  USB_ARC_set_joystick_callback(app_joystick_usb_cts_irq);
 
   int res = FS_mount();
   if (res == NIFFS_OK) {
@@ -729,6 +706,12 @@ void APP_init(void) {
       DBG(D_APP, D_WARN, "fs error %i\n", res);
     }
   }
+
+  USB_ARC_set_kb_callback(app_kb_usb_cts_irq);
+  USB_ARC_set_mouse_callback(app_mouse_usb_cts_irq);
+  USB_ARC_set_joystick_callback(app_joystick_usb_cts_irq);
+
+  USB_ARC_start();
 
   // setup devices
 

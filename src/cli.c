@@ -16,6 +16,7 @@
 #include "gpio.h"
 
 #include "usb/usb_arcade.h"
+#include "usb/usb_hw_config.h"
 
 #include "linker_symaccess.h"
 
@@ -23,6 +24,10 @@
 #include "usb/usb_arc_codes.h"
 
 #include "niffs_impl.h"
+
+#ifdef CONFIG_ANNOYATRON
+#include "app_annoyatron.h"
+#endif // CONFIG_ANNOYATRON
 
 #define CLI_PROMPT "> "
 #define IS_STRING(s) ((u8_t*)(s) >= (u8_t*)in && (u8_t*)(s) < (u8_t*)in + sizeof(in))
@@ -68,6 +73,10 @@ static int f_fs_load(char *name);
 static int f_fs_rm(char *name);
 static int f_fs_format(void);
 static int f_fs_chk(void);
+static int f_fs_create(char *name);
+static int f_fs_rename(char *oldname, char *newname);
+static int f_fs_append(char *name, char *line);
+static int f_fs_less(char *name);
 
 static int f_uwrite(int uart, char* data);
 static int f_uread(int uart, int numchars);
@@ -86,6 +95,19 @@ static int f_build(void);
 
 static int f_memfind(int p);
 static int f_memdump(int a, int l);
+
+#ifdef CONFIG_ANNOYATRON
+
+static int f_an_stop(void);
+
+static int f_an_wait(char *s, char* s2);
+static int f_an_loop(int loops);
+static int f_an_endloop(void);
+
+static int f_usb_kb(char *k1, char *k2, char *k3, char *k4);
+static int f_usb_mouse(int dx, int dy, int dw, int buttons);
+
+#endif // CONFIG_ANNOYATRON
 
 static int f_def_dummy(void) {return 0;};
 
@@ -171,7 +193,42 @@ static cmd c_tbl[] = {
     { .name = "format", .fn = (func) f_fs_format, .dbg = FALSE,
         .help = "Formats file system\n"
     },
+    { .name = "creat", .fn = (func) f_fs_create, .dbg = FALSE,
+        .help = "Creates empty file\n"
+    },
+    { .name = "append", .fn = (func) f_fs_append, .dbg = FALSE,
+        .help = "Appends line to file\n"
+    },
+    { .name = "rename", .fn = (func) f_fs_rename, .dbg = FALSE,
+        .help = "Renames a file\n"
+    },
+    { .name = "less", .fn = (func) f_fs_less, .dbg = FALSE,
+        .help = "Show file contents\n"
+    },
 
+#ifdef CONFIG_ANNOYATRON
+
+    { .name = "wait", .fn = (func) f_an_wait, .dbg = FALSE,
+        .help = "annoyatron: wait [rand <ms>|<ms>]\n"
+    },
+    { .name = "loop", .fn = (func) f_an_loop, .dbg = FALSE,
+        .help = "annoyatron: loop <times>\n"
+    },
+
+    { .name = "endloop", .fn = (func) f_an_endloop, .dbg = FALSE,
+        .help = "annoyatron: endloop\n"
+    },
+    { .name = "kb", .fn = (func) f_usb_kb, .dbg = FALSE,
+        .help = "annoyatron: kb (<key1> (<key2> (<key3> (<key4>))))\n"
+    },
+    { .name = "mouse", .fn = (func) f_usb_mouse, .dbg = FALSE,
+        .help = "annoyatron: kb (<dx> (<dy> (<dw> (<buttmask>))))\n"
+    },
+    { .name = "stop", .fn = (func) f_an_stop, .dbg = FALSE,
+        .help = "annoyatron: stop annoying\n"
+    },
+
+#endif // CONFIG_ANNOYATRON
 
 
     { .name = "dump", .fn = (func) f_dump, .dbg = TRUE,
@@ -354,11 +411,13 @@ static int f_cfg(void) {
   print("joystick report delta:                %i ms\n", APP_cfg_get_joystick_delta_ms());
   print("joystick direction accelerator speed: %i\n", APP_cfg_get_joystick_acc_speed());
 
+#ifndef CONFIG_ANNOYATRON
   int pin;
   for (pin = 0; pin < APP_CONFIG_PINS; pin++) {
     def_config *c = APP_cfg_get_pin(pin);
     if (c->pin) def_config_print(c);
   }
+#endif
 
   return 0;
 }
@@ -506,6 +565,29 @@ static int f_fs_chk(void) {
   return 0;
 }
 
+static int f_fs_create(char *name) {
+  int res = FS_create(name);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_rename(char *oldname, char *newname){
+  int res = FS_rename(oldname, newname);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_append(char *name, char *line) {
+  int res = FS_append(name, line);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
+
+static int f_fs_less(char *name) {
+  int res = FS_less(name);
+  if (res != 0) print("err: %i\n", res);
+  return 0;
+}
 
 
 
@@ -791,7 +873,98 @@ static int f_memdump(int addr, int len) {
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-static void CLI_parse(u32_t len, u8_t *buf) {
+#ifdef CONFIG_ANNOYATRON
+
+static int f_an_stop(void) {
+  annoy_stop();
+  return 0;
+}
+
+static int f_an_wait(char *s, char *s2) {
+  u32_t time;
+  if (IS_STRING(s) && strcmp("rand", s) == 0) {
+    if (_argc < 2) {
+      time = rand_next() % 1000;
+    } else {
+      time = rand_next() % (u32_t)s2;
+    }
+  } else {
+    time = (u32_t)s;
+  }
+  if (time > 20000) time = rand_next() % 20000;
+  if (time == 0) time = 1;
+  print("wait %i ms\n", time);
+  annoy_wait(time);
+  return 0;
+}
+
+static int f_an_loop(int loops) {
+  annoy_loop_enter(loops);
+  return 0;
+}
+static int f_an_endloop(void) {
+  annoy_loop_exit();
+  return 0;
+}
+
+static enum kb_hid_code get_kb_code(char *s) {
+  enum kb_hid_code kb_code;
+  for (kb_code = 0; kb_code < _KB_HID_CODE_MAX; kb_code++) {
+    const keymap *kb_map = USB_ARC_get_keymap(kb_code);
+    if (kb_map->name == NULL) continue;
+    if (strcmp(kb_map->name, s) == 0) {
+      return kb_code;
+      break;
+    }
+  }
+  return _KB_HID_CODE_MAX;
+}
+
+static void fill_kb_report(char *sym, usb_kb_report *r) {
+  enum kb_hid_code kb_code = get_kb_code(sym);
+  if (kb_code >= _KB_HID_CODE_MAX) {
+    print("keyboard symbol %s not found\n", sym);
+    return;
+  }
+
+  if (kb_code >= MOD_LCTRL) {
+    r->modifiers |= MOD_BIT(kb_code);
+  } else {
+    int i = 0;
+    while (r->keymap[i] != 0) i++;
+    r->keymap[i] = kb_code;
+  }
+}
+
+static int f_usb_kb(char *k1, char *k2, char *k3, char *k4) {
+  usb_kb_report r;
+  memset(&r, 0, sizeof(r));
+  if (_argc >= 1) fill_kb_report(k1, &r);
+  if (_argc >= 2) fill_kb_report(k2, &r);
+  if (_argc >= 3) fill_kb_report(k3, &r);
+  if (_argc >= 4) fill_kb_report(k4, &r);
+  USB_ARC_KB_tx(&r);
+  return 0;
+}
+
+static int f_usb_mouse(int dx, int dy, int dw, int buttons) {
+  usb_mouse_report r;
+  memset(&r, 0, sizeof(r));
+  if (_argc >= 1) r.dx = dx & 0xff;
+  if (_argc >= 2) r.dy = dy & 0xff;
+  if (_argc >= 3) r.wheel = dw & 0xff;
+  if (_argc >= 4) r.modifiers = buttons & 0xff;
+  USB_ARC_MOUSE_tx(&r);
+  return 0;
+}
+
+#endif // CONFIG_ANNOYATRON
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+void CLI_parse(u32_t len, u8_t *buf) {
+#ifndef CONFIG_ANNOYATRON
   if (strcmpbegin("def", (char*)buf)==0) {
     if (buf[len-1] == '\r' || buf[len-1] == '\n') {
       len--;
@@ -807,6 +980,7 @@ static void CLI_parse(u32_t len, u8_t *buf) {
     print(CLI_PROMPT);
     return;
   }
+#endif // CONFIG_ANNOYATRON
 
   cursor cursor;
   strarg_init(&cursor, (char*) buf, len);

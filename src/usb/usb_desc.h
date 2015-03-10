@@ -46,11 +46,15 @@
 #define ARC_OFFS_HID_DESC                   0x12
 
 #define ARC_SIZE_DEVICE_DESC                18
+#ifndef CONFIG_ANNOYATRON
 #ifdef CONFIG_ARCHID_VCD
-#define ARC_SIZE_CONFIG_DESC                109+58
+#define ARC_SIZE_CONFIG_DESC                59+50+58
 #else
-#define ARC_SIZE_CONFIG_DESC                109
+#define ARC_SIZE_CONFIG_DESC                59+50
 #endif
+#else // CONFIG_ANNOYATRON
+#define ARC_SIZE_CONFIG_DESC                59
+#endif // CONFIG_ANNOYATRON
 #define ARC_KB_SIZE_REPORT_DESC             62
 #define ARC_MOUSE_SIZE_REPORT_DESC          74
 #define ARC_JOYSTICK_SIZE_REPORT_DESC       48

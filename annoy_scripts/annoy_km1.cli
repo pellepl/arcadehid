@@ -1,0 +1,10 @@
+rm annoy_km1
+append annoy_km1 "kb LEFT_CTRL"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "mouse 0 0 30 0"
+append annoy_km1 "kb"
+less annoy_km1

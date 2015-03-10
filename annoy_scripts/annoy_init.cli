@@ -1,0 +1,21 @@
+rm init_annoy
+append init_annoy "loop 3"
+append init_annoy "loop 50"
+append init_annoy "mouse -1 0 0 0"
+append init_annoy "wait 4"
+append init_annoy "endloop"
+append init_annoy "loop 50"
+append init_annoy "mouse 0 -1 0 0"
+append init_annoy "wait 4"
+append init_annoy "endloop"
+append init_annoy "loop 50"
+append init_annoy "mouse 1 0 0 0"
+append init_annoy "wait 4"
+append init_annoy "endloop"
+append init_annoy "loop 50"
+append init_annoy "mouse 0 1 0 0"
+append init_annoy "wait 4"
+append init_annoy "endloop"
+append init_annoy "endloop"
+less init_annoy
+

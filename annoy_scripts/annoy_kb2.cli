@@ -1,0 +1,4 @@
+rm annoy_k2
+append annoy_k2 "kb SPACE"
+append annoy_k2 "kb"
+less annoy_k2

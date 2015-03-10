@@ -49,10 +49,17 @@ const uint8_t ARC_device_descriptor[ARC_SIZE_DEVICE_DESC] =
     0x00,                       /*bDeviceSubClass*/
     0x00,                       /*bDeviceProtocol*/
     0x40,                       /*bMaxPacketSize 64*/
+#ifndef CONFIG_ANNOYATRON
     0xde,                       /*idVendor (0xfede)*/
     0xfe,
     0xda,                       /*idProduct = 0xbeda*/
     0xbe,
+#else
+    0x87,                       /*idVendor (0xfede)*/
+    0x80,
+    0x01,                       /*idProduct = 0xbeda*/
+    0x80,
+#endif
     0x30,                       /*bcdDevice rel. 2.00*/
     0x02,
     1,                          /*Index of string descriptor describing
@@ -74,11 +81,15 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     USB_CONFIGURATION_DESCRIPTOR_TYPE, /* bDescriptorType: Configuration */
     ARC_SIZE_CONFIG_DESC,               /* wTotalLength: Bytes returned */
     0x00,
+#ifndef CONFIG_ANNOYATRON
 #ifdef CONFIG_ARCHID_VCD
 /*P*/    0x06,         /*bNumInterfaces: nbr of interfaces */
 #else
 /*P*/    0x04,         /*bNumInterfaces: nbr of interfaces */
 #endif
+#else  // CONFIG_ANNOYATRON
+/*P*/    0x02,         /*bNumInterfaces: nbr of interfaces */
+#endif  // CONFIG_ANNOYATRON
     0x01,         /*bConfigurationValue: Configuration value*/
     0x00,         /*iConfiguration: Index of string descriptor describing
                                      the configuration*/
@@ -156,7 +167,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     /* 59 */
 
     /*P*/
-
+#ifndef CONFIG_ANNOYATRON
     /************** ifc 3:JOYSTICK1         ****************/
     /************** Descriptor of interface ****************/
 
@@ -301,6 +312,7 @@ const uint8_t ARC_config_descriptor[ARC_SIZE_CONFIG_DESC] =
     0x00    /* bInterval */
 
 #endif
+#endif // CONFIG_ANNOYATRON
 }; /* config descriptor */
 
 const uint8_t ARC_KB_report_descriptor[ARC_KB_SIZE_REPORT_DESC] =
@@ -475,17 +487,26 @@ const uint8_t ARC_string_vendor[ARC_SIZE_STRING_VENDOR] =
   {
     ARC_SIZE_STRING_VENDOR, /* Size of Vendor string */
     USB_STRING_DESCRIPTOR_TYPE,  /* bDescriptorType*/
-
+#ifndef CONFIG_ANNOYATRON
     'p', 0, 'e', 0, 'l', 0, 'l', 0, 'e', 0, 'p', 0, 'l', 0,
     'u', 0, 't', 0, 't', 0, '.', 0, 'c', 0, 'o', 0, 'm', 0
+#else
+    'I', 0, 'n', 0, 't', 0, 'e', 0, 'l', 0, ' ', 0, 'C', 0,
+    'o', 0, 'r', 0, 'p', 0, ' ', 0, 'L', 0, 'T', 0, 'D', 0
+#endif
   };
 
 const uint8_t ARC_string_product[ARC_SIZE_STRING_PRODUCT] =
   {
     ARC_SIZE_STRING_PRODUCT,          /* bLength */
     USB_STRING_DESCRIPTOR_TYPE,        /* bDescriptorType */
+#ifndef CONFIG_ANNOYATRON
     'A', 0, 'r', 0, 'c', 0, 'a', 0, 'd', 0, 'e', 0, '-', 0,
     'c', 0, 'o', 0, 'n', 0, 't', 0, 'r', 0, 'o', 0, 'l', 0,
+#else
+    'U', 0, 'S', 0, 'B', 0, ' ', 0, 'C', 0, 'o', 0, 'n', 0,
+    't', 0, 'r', 0, 'o', 0, 'l', 0, 'H', 0, 'U', 0, 'B', 0,
+#endif
   };
 uint8_t ARC_string_serial[ARC_SIZE_STRING_SERIAL] =
   {

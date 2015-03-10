@@ -102,7 +102,11 @@ u8_t get_print_output(void);
 
 #define USE_COLOR_CODING
 
+//#define CONFIG_ANNOYATRON
+
+#ifndef CONFIG_ANNOYATRON
 #define CONFIG_ARCHID_VCD
+#endif // CONFIG_ANNOYATRON
 
 /** IO **/
 #define CONFIG_IO_MAX   2

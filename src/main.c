@@ -35,7 +35,9 @@ int main(void) {
   SYS_set_assert_behaviour(ASSERT_RESET);
 
   IO_define(IOSTD, io_uart, UARTSTDIN);
+#ifndef CONFIG_ANNOYATRON
   IO_define(IOUSB, io_usb, -1);
+#endif
 
   USB_ARC_init();
 

@@ -2,6 +2,12 @@ BINARY = arcadehid
 DBG_SCRIPT = debug.gdb
 GDB_PORT = 4444
 
+ifeq ($(ANNOYATRON),1)
+CONFIG_ANNOYATRON = 1
+FLAGS += -DCONFIG_ANNOYATRON
+endif
+
+
 CONFIG_MAKE = config.mk
 
 ############
@@ -18,7 +24,9 @@ STARTUP = startup_stm32f10x_md.s
 #FLAGS += -DCONFIG_HY_TEST_BOARD
 
 # ugly hack, will use local vcd implementation instead of the one generic
+ifneq ($(ANNOYATRON),1)
 FLAGS += -DCONFIG_USB_VCD
+endif
 
 ############
 #
@@ -77,6 +85,8 @@ MKDIR = mkdir -p
 #
 ###############
 
+
+
 LD_SCRIPT = arm.ld
 INCLUDE_DIRECTIVES =
 COMPILEROPTIONS = $(INCLUDE_DIRECTIVES) $(FLAGS) -mcpu=cortex-m3 -mno-thumb-interwork -mthumb -Wall -gdwarf-2 -Wno-packed-bitfield-compat
@@ -115,7 +125,11 @@ CFILES 		+= processor.c
 CFILES 		+= cli.c
 CFILES 		+= timer.c
 CFILES 		+= app.c
+ifneq ($(ANNOYATRON),1)
 CFILES		+= def_config_parser.c
+else
+CFILES		+= app_annoyatron.c
+endif
 CFILES		+= gpio_map.c
 CFILES		+= niffs_impl.c
 

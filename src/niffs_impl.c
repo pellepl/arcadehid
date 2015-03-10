@@ -177,7 +177,8 @@ int FS_save_config(char *name) {
 }
 
 int FS_load_config(char *name) {
-  int res;
+  int res = NIFFS_OK;
+#ifndef CONFIG_ANNOYATRON
   int fd;
   fd = NIFFS_open(&fs, name, NIFFS_O_RDONLY , 0);
   if (fd < NIFFS_OK) {
@@ -228,8 +229,8 @@ int FS_load_config(char *name) {
   }
 
   NIFFS_close(&fs, fd);
+#endif
   return res < NIFFS_OK ? res : NIFFS_OK;
-
 }
 
 int FS_rm_config(char *name) {
@@ -255,6 +256,48 @@ int FS_format(void) {
   return res;
 }
 
+int FS_create(char *name) {
+  return NIFFS_creat(&fs, name, 0);
+}
+
+int FS_append(char *name, char *line) {
+  int fd = NIFFS_open(&fs, name, NIFFS_O_APPEND | NIFFS_O_CREAT | NIFFS_O_RDWR, 0);
+  if (fd < 0) return fd;
+  int res = NIFFS_write(&fs, fd, (u8_t *)line, strlen(line));
+  if (res < NIFFS_OK) return res;
+  u8_t nl = '\n';
+  res = NIFFS_write(&fs, fd, &nl, 1);
+  if (res < NIFFS_OK) return res;
+  return NIFFS_close(&fs, fd);
+}
+
+int FS_less(char *name) {
+  int fd = NIFFS_open(&fs, name, NIFFS_O_RDONLY, 0);
+  if (fd < 0) return fd;
+  char buf[32];
+  int res;
+  do {
+    res = NIFFS_read(&fs, fd, (u8_t *)buf, sizeof(buf)-1);
+    if (res > 0) {
+      buf[res] = 0;
+      print("%s", buf);
+    }
+  } while (res >= NIFFS_OK);
+  if (res == ERR_NIFFS_END_OF_FILE) res = NIFFS_OK;
+  if (res > 0) res = 0;
+  print("\n");
+  NIFFS_close(&fs, fd);
+  return res;
+}
+
+int FS_rename(char *oldname, char *newname) {
+  return NIFFS_rename(&fs, oldname, newname);
+}
+
+
+niffs *FS_get_fs(void) {
+  return &fs;
+}
 
 
 // flash hal

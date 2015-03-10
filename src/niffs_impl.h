@@ -35,6 +35,11 @@ int FS_load_config(char *name);
 int FS_rm_config(char *name);
 int FS_chk(void);
 int FS_format(void);
+int FS_create(char *name);
+int FS_append(char *name, char *line);
+int FS_less(char *name);
+int FS_rename(char *oldname, char *newname);
+niffs *FS_get_fs(void);
 
 
 #endif /* SRC_NIFFS_IMPL_H_ */

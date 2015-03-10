@@ -63,6 +63,8 @@ void EP2_IN_Callback(void)
   if (mouse_report_ready_cb) mouse_report_ready_cb();
 }
 
+
+#ifndef CONFIG_ANNOYATRON
 //joystick1
 void EP3_IN_Callback(void)
 {
@@ -151,6 +153,8 @@ void SOF_Callback(void)
 }
 
 #endif
+
+#endif // CONFIG_ANNOYATRON
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

@@ -1,0 +1,10 @@
+rm annoy_m3
+append annoy_m3 "loop 10"
+append annoy_m3 "mouse 0 0 0 2"
+append annoy_m3 "wait rand"
+append annoy_m3 "mouse 0 0 0 0"
+append annoy_m3 "wait 200"
+append annoy_m3 "wait rand"
+append annoy_m3 "endloop"
+less annoy_m3
+

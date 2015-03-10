@@ -204,6 +204,8 @@ void ARC_Reset(void)
   SetEPRxStatus(ENDP2, EP_RX_DIS);
   SetEPTxStatus(ENDP2, EP_TX_NAK);
 
+#ifndef CONFIG_ANNOYATRON
+
   /* Initialize Endpoint 3 */
   SetEPType(ENDP3, EP_INTERRUPT);
   SetEPTxAddr(ENDP3, ENDP3_TXADDR);
@@ -238,10 +240,9 @@ void ARC_Reset(void)
   SetEPRxCount(ENDP6, VIRTUAL_COM_PORT_DATA_SIZE);
   SetEPRxStatus(ENDP6, EP_RX_VALID);
   SetEPTxStatus(ENDP6, EP_TX_DIS);
+
 #endif
-
-
-
+#endif // CONFIG_ANNOYATRON
 
   /* Set this device to response on default address */
   SetDeviceAddress(0);
@@ -545,7 +546,7 @@ RESULT ARC_Get_Interface_Setting(uint8_t Interface, uint8_t AlternateSetting)
   {
     return USB_UNSUPPORT;
   }
-#ifdef CONFIG_ARCHID_VCD
+#if defined(CONFIG_ARCHID_VCD) && !defined(CONFIG_ANNOYATRON)
   else if (Interface > 1)
 #else
     else if (Interface > 0)

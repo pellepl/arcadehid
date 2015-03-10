@@ -1,0 +1,6 @@
+rm annoy_m2
+append annoy_m2 "loop 50"
+append annoy_m2 "mouse 0 0 1 0"
+append annoy_m2 "endloop"
+less annoy_m2
+

@@ -21,6 +21,9 @@
 #include "usb_arcade.h"
 
 #include "niffs_impl.h"
+#ifdef CONFIG_ANNOYATRON
+#include "app_annoyatron.h"
+#endif
 
 volatile u8_t print_io = IOSTD;
 
@@ -102,6 +105,7 @@ static struct {
 } app;
 
 
+#ifndef CONFIG_ANNOYATRON
 
 static int arc_memcmp(void *a, void *b, u32_t len) {
   u8_t *pa = (u8_t *)a;
@@ -681,6 +685,8 @@ static void app_config_default(void) {
   APP_cfg_set_pin(&cfg);
 }
 
+#endif // CONFIG_ANNOYATRON
+
 /////////////////////////////////// IFC
 
 volatile static bool app_init = FALSE;
@@ -694,6 +700,7 @@ void APP_init(void) {
     DBG(D_APP, D_WARN, "could not mount fs - error %i\n", res);
   }
 
+#ifndef CONFIG_ANNOYATRON
   if (app.fs_mounted) {
     res = FS_load_config("default");
     if (res == ERR_NIFFS_FILE_NOT_FOUND) {
@@ -710,12 +717,19 @@ void APP_init(void) {
   USB_ARC_set_kb_callback(app_kb_usb_cts_irq);
   USB_ARC_set_mouse_callback(app_mouse_usb_cts_irq);
   USB_ARC_set_joystick_callback(app_joystick_usb_cts_irq);
+#endif // CONFIG_ANNOYATRON
 
   USB_ARC_start();
+
+
+#ifdef CONFIG_ANNOYATRON
+  annoy_init();
+#endif
 
   // setup devices
 
   // keyboard device
+#ifndef CONFIG_ANNOYATRON
   app.devs[DEV_KB].type = HID_ID_TYPE_KEYBOARD;
   app.devs[DEV_KB].index = 0;
   app.devs[DEV_KB].construct_report = kb_construct_report;
@@ -751,6 +765,7 @@ void APP_init(void) {
   app.devs[DEV_JOY2].report_len = sizeof(app.joystick_report2);
   app.devs[DEV_JOY2].report_filter = TRUE;
   app.devs[DEV_JOY2].timer_task = TASK_create(app_device_timer_task, TASK_STATIC);
+#endif // CONFIG_ANNOYATRON
 
   app_init = TRUE;
 }
@@ -819,6 +834,7 @@ u16_t APP_cfg_get_joystick_acc_speed(void) {
 
 void APP_timer(void) {
   if (app_init) {
+#ifndef CONFIG_ANNOYATRON
     // input read
     if (!app.lock_gpio_sampling) {
       int pin;
@@ -857,8 +873,8 @@ void APP_timer(void) {
         TASK_run(t, 0, NULL);
       }
     }
+#endif // CONFIG_ANNOYATRON
   }
-
   // led blink
   const gpio_pin_map *led = GPIO_MAP_get_led_map();
   if (SYS_get_time_ms() % 1000 > 0) {

@@ -25,6 +25,7 @@
   ******************************************************************************
   */
 
+#include "system.h"
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __USB_CONF_H
@@ -40,11 +41,15 @@
 /* EP_NUM */
 /* defines how many endpoints are used by the device */
 /*-------------------------------------------------------------*/
+#ifndef CONFIG_ANNOYATRON
 #ifdef CONFIG_ARCHID_VCD
 #define EP_NUM     (8)
 #else
 #define EP_NUM     (5)
 #endif
+#else // CONFIG_ANNOYATRON
+#define EP_NUM     (3)
+#endif // CONFIG_ANNOYATRON
 
 /*-------------------------------------------------------------*/
 /* --------------   Buffer Description Table  -----------------*/
@@ -58,6 +63,8 @@
 #define ENDP1_TXADDR        (0xc0)
 // mouse endpoint
 #define ENDP2_TXADDR        (0x100)
+
+#ifndef CONFIG_ANNOYATRON
 // joystick1 endpoint
 #define ENDP3_TXADDR        (0x108)
 // joystick2 endpoint
@@ -69,6 +76,7 @@
 #define ENDP6_RXADDR        (0x120)
 #define ENDP7_TXADDR        (0x160)
 #endif
+#endif // CONFIG_ANNOYATRON
 
 /*-------------------------------------------------------------*/
 /* -------------------   ISTR events  -------------------------*/
@@ -94,6 +102,7 @@
 /* associated to defined endpoints */
 // #define  EP1_IN_Callback   NOP_Process
 // #define  EP2_IN_Callback   NOP_Process
+#ifndef CONFIG_ANNOYATRON
 //#define  EP3_IN_Callback   NOP_Process
 //#define  EP4_IN_Callback   NOP_Process
 
@@ -118,6 +127,23 @@
 #endif
 #define  EP7_OUT_Callback   NOP_Process
 
+#else // CONFIG_ANNOYATRON
+
+#define  EP3_IN_Callback   NOP_Process
+#define  EP4_IN_Callback   NOP_Process
+#define  EP5_IN_Callback   NOP_Process
+#define  EP6_IN_Callback   NOP_Process
+#define  EP7_IN_Callback   NOP_Process
+
+#define  EP1_OUT_Callback   NOP_Process
+#define  EP2_OUT_Callback   NOP_Process
+#define  EP3_OUT_Callback   NOP_Process
+#define  EP4_OUT_Callback   NOP_Process
+#define  EP5_OUT_Callback   NOP_Process
+#define  EP6_OUT_Callback   NOP_Process
+#define  EP7_OUT_Callback   NOP_Process
+
+#endif  // CONFIG_ANNOYATRON
 #endif /*__USB_CONF_H*/
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

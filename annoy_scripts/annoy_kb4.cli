@@ -1,0 +1,4 @@
+rm annoy_k4
+append annoy_k4 "kb LEFT_CTRL LEFT_ALT RIGHT"
+append annoy_k4 "kb"
+less annoy_k4

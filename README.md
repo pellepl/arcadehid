@@ -24,7 +24,7 @@ Now also with the Annoyatron support, drive your friends mad...
 CLI pin definition examples
 ===========================
 ```
-// define pin 1 to send keyboard character A\n"
+// define pin 1 to send keyboard character A
 def pin1 = a
 // define pin 2 to move mouse up
 def pin2 = mouse_y(-1)
@@ -34,7 +34,7 @@ def pin3 = pin4 ? mouse_x(1) : mouse_x(-1)
 def pin5 = LEFT_CTRL LEFT_ALT DELETE
 ```
 
-For certain definitions, numerators and accelerators are possible.
+For certain definitions, numerators are possible. A numerators normally tells how much to move something, e.g. a mouse or joystick. In addition, all numerators can have accelerators, meaning the control will move more and more over time.
 A numerator ```<num>``` is defined as  ```(ACC)[(+)|-][1..127]```.
 
 ```

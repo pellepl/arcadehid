@@ -23,7 +23,7 @@ Now also with the Annoyatron support, drive your friends mad...
 
 CLI pin definition examples
 ===========================
-´´´
+```
 // define pin 1 to send keyboard character A\n"
 def pin1 = a
 // define pin 2 to move mouse up
@@ -31,31 +31,31 @@ def pin2 = mouse_y(-1)
 // define pin 3 to move mouse right if pin 4 is pressed else left
 def pin3 = pin4 ? mouse_x(1) : mouse_x(-1)
 // define pin 5 to send keyboard sequence CTRL+ALT+DEL
-def pin5 = LEFT_CTRL LEFT_ALT DELETE\n"
-´´´
+def pin5 = LEFT_CTRL LEFT_ALT DELETE
+```
 
 For certain definitions, numerators and accelerators are possible.
-A numerator ´´´<num>´´´ is defined as  ´´´(ACC)[(+)|-][1..127]´´´.
+A numerator ```<num>``` is defined as  ```(ACC)[(+)|-][1..127]```.
 
-´´´
+```
 // move joystick 10 steps right on x axis
 def pin7 = joy1_x(10)
 // move joystick accelerating from 1 to 10 steps right on x axis
 def pin8 = joy1_x(ACC10)
 // and left
 def pin8 = joy1_x(ACC-10)
-´´´
+```
 
 Accelerator speed is controlled by cli commands
-´´´
+```
 set_mouse_pos_acc
 set_mouse_wheel_acc
 set_joy_acc
-´´´
+```
 
 Following is a list of all definitions possible.
 
-´´´
+```
 KEYBOARD SYMBOLS:
   A                   B                   C                   D                   
   E                   F                   G                   H                   
@@ -120,4 +120,4 @@ JOYSTICK SYMBOLS:
   JOY2_BUTTON3        JOY2_BUTTON4        JOY2_BUTTON5        JOY2_BUTTON6        
   JOY2_BUTTON7        JOY2_BUTTON8        JOY2_BUTTON9        JOY2_BUTTON10       
   JOY2_BUTTON11       JOY2_BUTTON12       JOY2_BUTTON13       JOY2_BUTTON14
-´´´
+```

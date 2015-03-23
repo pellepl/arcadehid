@@ -1,7 +1,7 @@
 rm annoy_k3
 append annoy_k3 "kb LEFT_CTRL LEFT_ALT F1"
 append annoy_k3 "kb"
-append annoy_k3 "wait 2000 "
+append annoy_k3 "wait 2000"
 append annoy_k3 "kb LEFT_CTRL LEFT_ALT F7"
 append annoy_k3 "kb"
 less annoy_k3

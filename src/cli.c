@@ -99,6 +99,7 @@ static int f_memdump(int a, int l);
 #ifdef CONFIG_ANNOYATRON
 
 static int f_an_stop(void);
+static int f_an_cycle(u32_t t);
 
 static int f_an_wait(char *s, char* s2);
 static int f_an_loop(int loops);
@@ -211,6 +212,10 @@ static cmd c_tbl[] = {
     { .name = "wait", .fn = (func) f_an_wait, .dbg = FALSE,
         .help = "annoyatron: wait [rand <ms>|<ms>]\n"
     },
+    { .name = "cycle", .fn = (func) f_an_cycle, .dbg = FALSE,
+        .help = "annoyatron: script cycle <ms>\n"
+    },
+
     { .name = "loop", .fn = (func) f_an_loop, .dbg = FALSE,
         .help = "annoyatron: loop <times>\n"
     },
@@ -222,7 +227,7 @@ static cmd c_tbl[] = {
         .help = "annoyatron: kb (<key1> (<key2> (<key3> (<key4>))))\n"
     },
     { .name = "mouse", .fn = (func) f_usb_mouse, .dbg = FALSE,
-        .help = "annoyatron: kb (<dx> (<dy> (<dw> (<buttmask>))))\n"
+        .help = "annoyatron: mouse (<dx> (<dy> (<dw> (<buttmask>))))\n"
     },
     { .name = "stop", .fn = (func) f_an_stop, .dbg = FALSE,
         .help = "annoyatron: stop annoying\n"
@@ -882,7 +887,7 @@ static int f_an_stop(void) {
 
 static int f_an_wait(char *s, char *s2) {
   u32_t time;
-  if (IS_STRING(s) && strcmp("rand", s) == 0) {
+  if (s >= 0x20000000 && strcmp("rand", s) == 0) {
     if (_argc < 2) {
       time = rand_next() % 1000;
     } else {
@@ -895,6 +900,11 @@ static int f_an_wait(char *s, char *s2) {
   if (time == 0) time = 1;
   print("wait %i ms\n", time);
   annoy_wait(time);
+  return 0;
+}
+
+static int f_an_cycle(u32_t cycle) {
+  annoy_set_cycle(cycle);
   return 0;
 }
 

@@ -1,4 +1,5 @@
 rm init_annoy
+append init_annoy "cycle 300000"
 append init_annoy "loop 3"
 append init_annoy "loop 50"
 append init_annoy "mouse -1 0 0 0"

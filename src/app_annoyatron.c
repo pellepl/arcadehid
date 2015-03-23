@@ -25,6 +25,11 @@ static int loop_stack_ix = -1;
 static niffs *fs;
 static task_timer timer;
 static task *annoy_task;
+static u32_t cycle;
+
+void annoy_set_cycle(u32_t ms) {
+  cycle = ms;
+}
 
 void annoy_loop_enter(int loops) {
   if (annoy_fd >= 0) {
@@ -71,7 +76,7 @@ static void annoy_find_new_file(void) {
   NIFFS_closedir(&d);
 
   if (files > 0) {
-    u32_t file_ix = (rand_next() / 137) % files;
+    u32_t file_ix = (rand_next() / 19) % files;
 
     files = 0;
     pe = &e;
@@ -87,7 +92,7 @@ static void annoy_find_new_file(void) {
     }
     NIFFS_closedir(&d);
 
-    wait_cycle = 4000 + (rand_next() % (1000*60*60));
+    wait_cycle = 4000 + (rand_next() % cycle);
 
     niffs_stat s;
     NIFFS_fstat(fs, annoy_fd, &s);
@@ -149,6 +154,7 @@ static void annoy_task_f(u32_t ignore, void *ignore_p) {
 }
 
 void annoy_init(void) {
+  cycle = 60*1000;
   fs = FS_get_fs();
   annoy_fd = NIFFS_open(fs, "init_annoy", NIFFS_O_RDONLY, 0);
   wait_cycle = 1;

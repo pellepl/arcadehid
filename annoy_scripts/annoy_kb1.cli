@@ -1,6 +1,6 @@
 rm annoy_k1
 append annoy_k1 "loop 15"
-append annoy_k1 "kb LEFT_SHIFT"
+append annoy_k1 "kb RIGHT_SHIFT"
 append annoy_k1 "wait rand 10000"
 append annoy_k1 "kb"
 append annoy_k1 "wait rand 10000"

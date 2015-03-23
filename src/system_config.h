@@ -12,8 +12,11 @@
 #include "types.h"
 #include "stm32f10x.h"
 
-
+#ifndef CONFIG_ANNOYATRON
 #define APP_NAME "ARCADEHID"
+#else
+#define APP_NAME "ANNOYATRON"
+#endif
 
 
 /****************************************/

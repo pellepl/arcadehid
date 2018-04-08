@@ -21,11 +21,16 @@
 // used to output in NIFFS_dump
 #define NIFFS_DUMP_OUT(...) print(__VA_ARGS__)
 
+#define NIFFS_MAX(x, y) (x) > (y) ? (x) : (y)
+#define NIFFS_MIN(x, y) (x) < (y) ? (x) : (y)
+
 // define for assertions within niffs
 #define NIFFS_ASSERT(x) ASSERT(x)
 
 // define maximum name length
 #define NIFFS_NAME_LEN          (16)
+
+#define NIFFS_LINEAR_AREA       (0)
 
 // define number of bits used for object ids, used for uniquely identify a file
 #define NIFFS_OBJ_ID_BITS       (8)

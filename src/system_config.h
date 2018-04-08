@@ -19,10 +19,11 @@
 #endif
 
 
+#define time sys_time
+
 /****************************************/
 /***** Functionality block settings *****/
 /****************************************/
-
 
 // enable uart2
 #define CONFIG_UART2

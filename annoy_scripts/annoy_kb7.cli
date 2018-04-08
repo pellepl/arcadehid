@@ -1,0 +1,4 @@
+rm annoy_k7
+append annoy_k7 "kb LEFT"
+append annoy_k7 "kb"
+less annoy_k7

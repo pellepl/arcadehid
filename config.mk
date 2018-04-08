@@ -1,4 +1,5 @@
-ARCH_STM32 = 1
+ARCH_CORTEX = 1
+PROC_FAMILY_STM32 = 1
 PROC_STM32F1 = 1
 
 # just to let eclipse get the picture
@@ -7,6 +8,7 @@ USE_STDPERIPH_DRIVER = 1
 USER_HARDFAULT=1
 
 # generic system configs
+CONFIG_IO = 1
 CONFIG_MEMOPS = 1
 CONFIG_VARCALL = 1
 CONFIG_MATH = 0

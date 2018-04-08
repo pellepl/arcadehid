@@ -1,0 +1,4 @@
+rm annoy_k10
+append annoy_k10 "kb MUTE"
+append annoy_k10 "kb"
+less annoy_k10

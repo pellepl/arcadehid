@@ -1,0 +1,6 @@
+[submodule "gitsub/niffs"]
+	path = gitsub/niffs
+	url = https://github.com/pellepl/niffs
+[submodule "gitsub/generic_embedded"]
+	path = gitsub/generic_embedded
+	url = https://github.com/pellepl/generic_embedded

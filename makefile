@@ -37,7 +37,7 @@ endif
 sourcedir = src
 builddir = build
 
-basetoolsdir = /home/petera/toolchain/arm-elf-tools-fp-4.8.2
+basetoolsdir ?= /home/petera/toolchain/arm-elf-tools-fp-4.8.2
 #basetoolsdir = /home/petera/toolchain/gcc/arm-elf-tools-4.8.1
 #basetoolsdir = /home/petera/toolchain/gcc/arm-elf-tools-4.7.1
 #basetoolsdir = /usr/local/gcc/arm-elf-tools-4.8.2
@@ -52,8 +52,8 @@ stmcmsisdircore = ${stmlibdir}/CMSIS/CM3/CoreSupport
 
 tools = ${basetoolsdir}/bin
 
-gensysdir = ../generic/system
-niffs = ../generic/niffs
+gensysdir = gitsub/generic_embedded
+niffs = gitsub/niffs
 
 CPATH =
 SPATH =
@@ -68,8 +68,8 @@ RFILES =
 #
 #############
 
-CROSS_COMPILE=${tools}/arm-none-eabi-
-#CROSS_COMPILE=${tools}/arm-elf-
+CROSS_COMPILE?=${tools}/arm-none-eabi-
+#CROSS_COMPILE?=${tools}/arm-elf-
 CC = $(CROSS_COMPILE)gcc $(COMPILEROPTIONS)
 AS = $(CROSS_COMPILE)gcc $(ASSEMBLEROPTIONS)
 LD = $(CROSS_COMPILE)ld

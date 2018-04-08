@@ -1,0 +1,4 @@
+rm annoy_k6
+append annoy_k6 "kb UP"
+append annoy_k6 "kb"
+less annoy_k6

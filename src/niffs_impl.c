@@ -70,7 +70,7 @@ static int niffs_hal_erase(u8_t *addr, u32_t len) {
   _flash_close();
   return r == FLASH_OK ? NIFFS_OK : ERR_NIFFS_HAL;
 }
-static int niffs_hal_write(u8_t *addr, u8_t *src, u32_t len) {
+static int niffs_hal_write(u8_t *addr, const u8_t *src, u32_t len) {
   _flash_open();
   FLASH_res r = FLASH_OK;
   while (r == FLASH_OK && len > 0) {
@@ -101,7 +101,8 @@ int FS_mount(void) {
     128,
     niffs_buf, sizeof(niffs_buf),
     niffs_fd, sizeof(niffs_fd)/sizeof(niffs_file_desc),
-    niffs_hal_erase, niffs_hal_write);
+    niffs_hal_erase, niffs_hal_write,
+    0);
   if (res != NIFFS_OK) return res;
   res = NIFFS_mount(&fs);
   if (res == ERR_NIFFS_NOT_A_FILESYSTEM) {
@@ -129,11 +130,10 @@ void FS_ls(void) {
     files++;
   }
   NIFFS_closedir(&d);
-  s32_t tot, used;
-  u8_t of;
-  NIFFS_info(&fs, &tot, &used, &of);
-  print("  %i bytes used of %i total in %i file%c\n", used, tot, files, files == 1 ? ' ' : 's');
-  if (of) {
+  niffs_info info;
+  NIFFS_info(&fs, &info);
+  print("  %i bytes used of %i total in %i file%c\n", info.used_bytes, info.total_bytes, files, files == 1 ? ' ' : 's');
+  if (info.overflow) {
     print("WARNING: filesystem crammed. Remove files and run check.\n");
   }
 }

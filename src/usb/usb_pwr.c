@@ -118,7 +118,7 @@ void Suspend(void)
 {
 	uint32_t i =0;
 	uint16_t wCNTR;
-	uint32_t tmpreg = 0;
+	//uint32_t tmpreg = 0;
 	
 	/*Store CNTR value */
 	wCNTR = _GetCNTR();  

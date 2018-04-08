@@ -1,0 +1,4 @@
+rm annoy_k5
+append annoy_k5 "kb LEFT_ALT TAB"
+append annoy_k5 "kb"
+less annoy_k5

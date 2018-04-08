@@ -767,7 +767,7 @@ static int f_uconf(int uart, int speed) {
     return -1;
   }
   UART_config(_UART(uart), speed,
-      UART_DATABITS_8, UART_STOPBITS_1, UART_PARITY_NONE, UART_FLOWCONTROL_NONE, TRUE);
+      UART_CFG_DATABITS_8, UART_CFG_STOPBITS_1, UART_CFG_PARITY_NONE, UART_CFG_FLOWCONTROL_NONE, TRUE);
 
   return 0;
 }

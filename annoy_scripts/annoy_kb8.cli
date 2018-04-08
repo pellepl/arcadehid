@@ -1,0 +1,4 @@
+rm annoy_k8
+append annoy_k8 "kb CAPSLOCK"
+append annoy_k8 "kb"
+less annoy_k8

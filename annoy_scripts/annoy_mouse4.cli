@@ -1,0 +1,6 @@
+rm annoy_m4
+append annoy_m4 "loop 100"
+append annoy_m4 "mouse 127 127 0 0"
+append annoy_m4 "wait 2"
+append annoy_m4 "endloop"
+less annoy_m4

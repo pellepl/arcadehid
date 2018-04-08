@@ -1,0 +1,3 @@
+rm annoy_p2
+append annoy_p2 "wait rand 3000"
+less annoy_p2

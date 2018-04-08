@@ -124,7 +124,7 @@ JOYSTICK SYMBOLS:
 
 ## Building ##
 
-Make sure you clone subdirectories.
+Make sure you clone submodules.
 
 ```
 human-entity@machine ~$ git clone --recursive https://github.com/pellepl/arcadehid
@@ -140,4 +140,5 @@ human-entity@machine ~/arcadehid$ CROSS_COMPILE=/home/human-entity/toolchain/arm
 
 Alternatively. you tinker a bit with the makefile.
 
-This will produce target files in elf, binary, and ihex flavours.
+This will produce target files in elf, binary, and ihex flavours in the `build` folder. Flash using your favourite dongle and tool. I use OpenOCD, there are some scripts in the repo which might be helpful to others.
+

@@ -121,3 +121,23 @@ JOYSTICK SYMBOLS:
   JOY2_BUTTON7        JOY2_BUTTON8        JOY2_BUTTON9        JOY2_BUTTON10       
   JOY2_BUTTON11       JOY2_BUTTON12       JOY2_BUTTON13       JOY2_BUTTON14
 ```
+
+## Building ##
+
+Make sure you clone subdirectories.
+
+```
+human-entity@machine ~$ git clone --recursive https://github.com/pellepl/arcadehid
+```
+
+You'll need an arm toolchain, let's say it lies in `/home/human-entity/toolchain/arm-none-eabi-toolchain-gcc-6.3.0`.
+Then you simply do this:
+```
+human-entity@machine ~$ cd arcadehid
+human-entity@machine ~/arcadehid$ make clean
+human-entity@machine ~/arcadehid$ CROSS_COMPILE=/home/human-entity/toolchain/arm-none-eabi-toolchain-gcc-6.3.0/bin/arm-none-eabi- make all
+```
+
+Alternatively. you tinker a bit with the makefile.
+
+This will produce target files in elf, binary, and ihex flavours.
